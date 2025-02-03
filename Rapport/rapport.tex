@@ -11,6 +11,8 @@
 
 \tableofcontents.
 \newpage.
+\section{Introduction}
+
 \section{Algorithmes de restauration d'images}
 \subsection[Algorithme de Gibbs]{Algorithme de Gibbs}
 On s'intéresse maintenant plus en détail à l'algorithme de Gibbs, développé dans les années 1960. Celui-ci se construit de la façon suivante : 
@@ -51,7 +53,7 @@ Pour le modèle d'Ising, par exemple, on a $\mathbb{E} =\{0,1\}$;
 \subsection[Algorithme de Metropolis]{Algorithme de Metropolis}
 \begin{itemize}
 \item On choisit tout d'abord un pixel $s_{ij} $ aléatoirement dans l'image.
-\item On récupère l'état du site $s_{ij} $, noté $\lambda_s$ et à valeurs dans $\mathbb{E}$, on calcule l'énergie locale du site: 
+\item On récupère l'état du site $s_{ij} $, noté $\lambda_s$ et à valeurs dans $\mathbb{E}$, on calcule l'énergie locale du site : 
 \[
   U_s(x_0=\lambda_s| \mathcal{V}_s)
 \]
@@ -64,12 +66,13 @@ Pour le modèle d'Ising, par exemple, on a $\mathbb{E} =\{0,1\}$;
 \[
   \Delta U = U_r(x_0=\lambda_r| \mathcal{V}_r)-U_s(x_0=\lambda_s| \mathcal{V}_s)
 \]
-\item Ainsi: 
+\item Ainsi : 
 \begin{enumerate}
   \item Si $\Delta U < 0$, on remplace l'état du site $s_{ij}$ par $\lambda_r$ ;
-  \item Sinon on tire une probabilité p, et si $p < \exp({-\Delta U })$, on accepte le changement de l'état du site $s_{ij}$ par $\lambda_r$.
+  \item Sinon, on tire une probabilité p, et si $p < \exp({-\Delta U })$, on accepte le changement de l'état du site $s_{ij}$ par $\lambda_r$.
 \end{enumerate}
 \end{itemize}
 
+\subsection[Algorithme du recuit simulé]{Algorithme du recuit simulé}
 
 \end{document}
