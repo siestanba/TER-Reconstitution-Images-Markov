@@ -1,6 +1,6 @@
 \documentclass[a4paper, 12pt]{article}
 \title{Rapport TER}
-\author{Yves Appriou}
+\author{Yves Appriou, Eva Morton, Sebastian Straut}
 \date{\today}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -13,10 +13,10 @@
 \newpage.
 \section{Algorithmes de restauration d'images}
 \subsection[Algorithme de Gibbs]{Algorithme de Gibbs}
-Maintenant nous allons voir plus en detail l'algorithme de Metropolis, developpé dans les années \textbf{1960} il consiste en : 
+On s'intéresse maintenant plus en detail à l'algorithme de Gibbs, developpé dans les années 1960. Celui-ci se construit de la façon suivante : 
 \begin{itemize}
-\item Choisir un pixel $s_{ij} $ aléatoirement dans l'image.
-\item On calcule l'energie locale $U_s(x_0=\lambda_i| \mathcal{V}_s), \forall \lambda_i \in \mathbb{E}  $ pour chacun des états possibles. On obtient donc le vecteur des energies locales : 
+\item On choisit tout d'abord un pixel $s_{ij} $ aléatoirement dans l'image.
+\item On calcule ensuite l'energie locale $U_s(x_0=\lambda_i| \mathcal{V}_s), \forall \lambda_i \in \mathbb{E}  $ pour chacun des états possibles. On obtient alors le vecteur des energies locales suivant : 
 \[
   U(x_0) = \left(
           \begin{array}{ll}
@@ -27,7 +27,7 @@ Maintenant nous allons voir plus en detail l'algorithme de Metropolis, developp�
           \end{array}
         \right)
 \]
-\item Ainsi a partir de cette mesure on obtient une réalisation de la loi de Gibbs : 
+\item On obtient, à partir de cette mesure, une réalisation de la loi de Gibbs : 
 \[
   \mu = P(x_1 = \lambda) = \frac{1}{Z} \left(
           \begin{array}{ll}
@@ -39,10 +39,10 @@ Maintenant nous allons voir plus en detail l'algorithme de Metropolis, developp�
         \right)
         , Z= \sum_{i\in \mathbb{E}} {U_s(x_1=i | \mathcal{V}_s)}
 \]
-La probabilité que le site $s_{ij}$ prenne la valeur $\lambda_i$ au temps n+1 est donnée par le $i^{\grave{e}me}$ élèment du vecteur de la loi de Gibbs.
-\item Enfin on tire sur $\mathbb{E}$ muni de la loi $\mu$, et on remplace par l'état tiré
+La probabilité que le site $s_{ij}$ prenne la valeur $\lambda_i$ au temps n+1 est donc donnée par le $i^{\grave{e}me}$ élèment du vecteur de la loi de Gibbs.
+\item Enfin, on tire sur $\mathbb{E}$ muni de la loi $\mu$, et on remplace par l'état tiré.
 \end{itemize}
-Pour le modele d'Ising par exemple on a $\mathbb{E} =\{0,1\}$;
+Pour le modèle d'Ising, par exemple, on a $\mathbb{E} =\{0,1\}$;
 
 \subsection[Algorithme de Metropolis]{Algorithme de Metropolis}
 
