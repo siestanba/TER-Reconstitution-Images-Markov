@@ -28,6 +28,7 @@ On s'intéresse maintenant plus en détail à l'algorithme de Gibbs, développé
         \right)
 \]
 \item On obtient, à partir de cette mesure, une réalisation de la loi de Gibbs : 
+\end{itemize}
 \[
   \mu = P(x_1 = \lambda) = \frac{1}{Z} \left(
           \begin{array}{ll}
@@ -39,9 +40,12 @@ On s'intéresse maintenant plus en détail à l'algorithme de Gibbs, développé
         \right)
         , Z= \sum_{i\in \mathbb{E}} {U_s(x_1=i | \mathcal{V}_s)}
 \]
+
 La probabilité que le site $s_{ij}$ prenne la valeur $\lambda_i$ au temps n+1 est donc donnée par le $i^{\grave{e}me}$ élément du vecteur de la loi de Gibbs.
+\begin{itemize}
 \item Enfin, on tire sur $\mathbb{E}$ muni de la loi $\mu$, et on remplace par l'état tiré.
 \end{itemize}
+
 Pour le modèle d'Ising, par exemple, on a $\mathbb{E} =\{0,1\}$;
 
 \subsection[Algorithme de Metropolis]{Algorithme de Metropolis}
