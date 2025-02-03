@@ -31,9 +31,9 @@ def voisinage_4(i, j, hauteur, largeur):
 # Calcule l'énergie locale d'un état donné dans un champ aléatoire
 def cdf_locale_4(i, j, hauteur, largeur, champ_aleatoire, etat_s, poids_aretes, poids_sommets):
     energie_locale = poids_sommets[etat_s] # commence à zéro pour gibbs
-    for voisin in voisinage_4(i, j, hauteur, largeur): # on itère dans les voisins
+    for voisin in voisinage_4(i, j, hauteur, largeur): # on itère dans les voisins (on nous donne les 4 voisins)
         etat_voisin = champ_aleatoire[voisin[0], voisin[1]] # on récupère l'état du voisin
-        energie_locale += poids_aretes[etat_s, etat_voisin] # on ajoute l'énergie de la connexion
+        energie_locale += poids_aretes[etat_s, etat_voisin] # on ajoute l'énergie de la connexion (1 si l'état est différent, 0 sinon) / on compte les voisins différents
     return energie_locale
 
 # Calcule l'attachement des données locales à l'état donné
@@ -124,11 +124,14 @@ def echantillonnage_Gibbs(champ_aleatoire, nb_iterations, modele, nom_fichier_pn
         for i, etat in enumerate(range(nb_etats)):
             # Calcul de l'énergie locale pour l'état 'etat' au pixel (i_s, j_s)
             energies[i] = cdf_locale_4(i_s, j_s, hauteur, largeur, champ_aleatoire, etat, poids_aretes, poids_sommets)
-            print(energies[i])
-
+            print(f"energies[{i}] : {energies[i]}")
+        
+        print(f"energie finale: {energies}")
         # on convertit les énergies locales en probabilités (distribution de Gibbs)
         probabilites = np.exp(-energies)  # Exponentielle des énergies inversées
+        print(f"probabilites : {probabilites}")
         probabilites /= np.sum(probabilites)  # on normalise pour obtenir une probabilité
+        print(f"probabilites : {probabilites}")
 
         # on choisit un nouvel état selon les probabilités calculées
         nouvel_etat = np.random.choice(list(range(nb_etats)), 1, p=probabilites)[0] # on choisit le nouvel état
@@ -474,8 +477,8 @@ if model_choice == 'ising':
     }
     # Initialisation du champ
     hrf, wrf = 50, 50  # Dimensions du champ
-    rf = np.uint8(np.floor(Ising_model['nb_etats'] * np.random.rand(hrf, wrf)))  # Champ aléatoire
-    rf_img = rf * np.floor(255 / (Ising_model['nb_etats'] - 1))  # Conversion en image
+    rf = np.uint8(np.floor(Ising_model['nb_etats'] * np.random.rand(hrf, wrf)))  # l'état initial du champ de Markov pour le modèle d'Ising (champ aléatoire)
+    rf_img = rf * np.floor(255 / (Ising_model['nb_etats'] - 1))  # Conversion en image (image 0 pour 0 (noir) et 255 pour 1 (blanc)) / on mult par 0 ou par 255
 
     # Nom du fichier image
     nom_fichier_png = 'ising_gibbs_1.png'
