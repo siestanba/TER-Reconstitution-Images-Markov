@@ -1,3 +1,9 @@
-\contentsline {section}{\numberline {1}Algorithmes de restauration d'images}{2}{}%
-\contentsline {subsection}{\numberline {1.1}Algorithme de Gibbs}{2}{}%
-\contentsline {subsection}{\numberline {1.2}Algorithme de Metropolis}{2}{}%
+\contentsline {section}{\numberline {1}Introduction}{2}{}%
+\contentsline {section}{\numberline {2}Définition d'un champ de Markov ?à modifier}{2}{}%
+\contentsline {section}{\numberline {3}Echantillonnage de réalisations de champs de Markov}{2}{}%
+\contentsline {subsection}{\numberline {3.1}Algorithme de Gibbs}{2}{}%
+\contentsline {subsection}{\numberline {3.2}Algorithme de Metropolis}{3}{}%
+\contentsline {section}{\numberline {4}Applications aux algorithmes de restauration d'images}{4}{}%
+\contentsline {subsection}{\numberline {4.1}Modèle d'Ising}{4}{}%
+\contentsline {subsection}{\numberline {4.2}Modèle de Potts}{4}{}%
+\contentsline {subsection}{\numberline {4.3}Algorithme du recuit simulé}{4}{}%
