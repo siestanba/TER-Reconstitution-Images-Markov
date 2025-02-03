@@ -1,0 +1,50 @@
+\documentclass[a4paper, 12pt]{article}
+\title{Rapport TER}
+\author{Yves Appriou}
+\date{\today}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents.
+\newpage.
+\section{Algorithmes de restauration d'images}
+\subsection[Algorithme de Gibbs]{Algorithme de Gibbs}
+Maintenant nous allons voir plus en detail l'algorithme de Metropolis, developpé dans les années \textbf{1960} il consiste en : 
+\begin{itemize}
+\item Choisir un pixel $s_{ij} $ aléatoirement dans l'image.
+\item On calcule l'energie locale $U_s(x_0=\lambda_i| \mathcal{V}_s), \forall \lambda_i \in \mathbb{E}  $ pour chacun des états possibles. On obtient donc le vecteur des energies locales : 
+\[
+  U(x_0) = \left(
+          \begin{array}{ll}
+            U_s(x_0=\lambda_1| \mathcal{V}_s) \\
+            U_s(x_0=\lambda_2| \mathcal{V}_s) \\
+            ...\\
+            U_s(x_0=\lambda_k| \mathcal{V}_s) \\
+          \end{array}
+        \right)
+\]
+\item Ainsi a partir de cette mesure on obtient une réalisation de la loi de Gibbs : 
+\[
+  \mu = P(x_1 = \lambda) = \frac{1}{Z} \left(
+          \begin{array}{ll}
+            \exp(-U_s(x_1=\lambda_1| \mathcal{V}_s)) \\
+            \exp(-U_s(x_1=\lambda_2| \mathcal{V}_s)) \\
+            ...\\
+            \exp(-U_s(x_1=\lambda_k| \mathcal{V}_s)) \\
+          \end{array}
+        \right)
+        , Z= \sum_{i\in \mathbb{E}} {U_s(x_1=i | \mathcal{V}_s)}
+\]
+La probabilité que le site $s_{ij}$ prenne la valeur $\lambda_i$ au temps n+1 est donnée par le $i^{\grave{e}me}$ élèment du vecteur de la loi de Gibbs.
+\item Enfin on tire sur $\mathbb{E}$ muni de la loi $\mu$, et on remplace par l'état tiré
+\end{itemize}
+Pour le modele d'Ising par exemple on a $\mathbb{E} =\{0,1\}$;
+
+\subsection[Algorithme de Metropolis]{Algorithme de Metropolis}
+
+
+\end{document}
