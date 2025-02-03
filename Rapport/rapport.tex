@@ -41,22 +41,20 @@ On s'intéresse maintenant plus en détail à l'algorithme de Gibbs, développé
         \right)
         , Z= \sum_{i\in \mathbb{E}} {U_s(x_1=i | \mathcal{V}_s)}
 \]
-
 La probabilité que le site $s_{ij}$ prenne la valeur $\lambda_i$ au temps n+1 est donc donnée par le $i^{\grave{e}me}$ élément du vecteur de la loi de Gibbs.
 \begin{itemize}
-\item Enfin, on tire sur $\mathbb{E}$ muni de la loi $\mu$, et on remplace par l'état tiré.
+\item Enfin, on tire dans $\mathbb{E}$ muni de la loi $\mu$, et on remplace par l'état tiré.
 \end{itemize}
-
 Pour le modèle d'Ising, par exemple, on a $\mathbb{E} =\{0,1\}$;
 
 \subsection[Algorithme de Metropolis]{Algorithme de Metropolis}
 \begin{itemize}
 \item On choisit tout d'abord un pixel $s_{ij} $ aléatoirement dans l'image.
-\item On récupère l'état du site $s_{ij} $, noté $\lambda_s$ et à valeurs dans $\mathbb{E}$, on calcule l'énergie locale du site : 
+\item On récupère l'état du site $s_{ij} $, noté $\lambda_s$ et à valeurs dans $\mathbb{E}$, puis on calcule l'énergie locale du site : 
 \[
   U_s(x_0=\lambda_s| \mathcal{V}_s)
 \]
-\item On tire un état $\lambda_r \in \mathbb{E}$ muni de $\mathcal{U}$, la loi uniforme sur $\mathbb{E}$.
+\item On tire ensuite un état $\lambda_r \in \mathbb{E}$ muni de $\mathcal{U}$, la loi uniforme sur $\mathbb{E}$.
 \item On calcule l'énergie locale du nouveau site $r_{ij}$ après changement d'état : 
 \[
   U_r(x_0=\lambda_r| \mathcal{V}_r = \mathcal{V}_s) 
