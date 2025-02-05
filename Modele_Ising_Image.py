@@ -8,16 +8,6 @@ import cv2
 from tqdm import tqdm
 import PIL.Image as pim
 
-PATH_IMG = '/Users/sebych/Documents/Github/TER-Reconstitution-Images-Markov/images/'
-nom_image = 'immonde3.jpg'
-
-# Vérifie si les arguments de la ligne de commande sont présents
-def est_argument_vide():
-    if len(sys.argv) > 1:
-        return sys.argv[1]
-    else:
-        return None
-
 # Renvoie les 4 voisins en connexité 4 d'un pixel (i, j) dans une image de dimensions (h, w)
 def voisinage_4(i, j, hauteur, largeur):
     return (
@@ -36,32 +26,6 @@ def cdf_locale_4(i, j, hauteur, largeur, champ_aleatoire, etat_s, poids_aretes, 
         energie_locale += poids_aretes[etat_s, etat_voisin] # on ajoute l'énergie de la connexion (1 si l'état est différent, 0 sinon) / on compte les voisins différents
     return energie_locale
 
-# Calcule l'attachement des données locales à l'état donné
-def attache_donnees_locale(i, j, etat_s, img, moyenne, echelle):
-    return np.log(echelle[etat_s]) + (img[i, j] - moyenne[etat_s])**2 / (2 * echelle[etat_s]**2)
-
-# Génère tous les sommets et arêtes pour une image de dimensions (h, w)
-def generer_sommets_et_aretes_4(hauteur, largeur):
-    for i in range(hauteur):
-        for j in range(largeur):
-            liste_temporaire = [(i, j)]
-            if j + 1 < largeur:
-                liste_temporaire += [(i, j+1)]
-            if i + 1 < hauteur:
-                liste_temporaire += [(i+1, j)]
-            yield liste_temporaire 
-
-# Calcule l'énergie globale du champ aléatoire
-def energie_globale_4(champ_aleatoire, poids_aretes, poids_sommets):
-    energie_totale = 0
-    hauteur, largeur = champ_aleatoire.shape
-    for element in generer_sommets_et_aretes_4(hauteur, largeur):
-        etat_s = champ_aleatoire[element[0]]
-        energie_totale += poids_sommets[etat_s]
-        for sommet in element[1:]:
-            energie_totale += poids_aretes[etat_s, champ_aleatoire[sommet]]
-    return energie_totale
-
 # Fonction d'échantillonnage de Gibbs
 def echantillonnage_Gibbs(champ_aleatoire, nb_iterations, modele, nom_fichier_png=None):
     hauteur, largeur = champ_aleatoire.shape  # Dimensions du champ aléatoire
@@ -72,10 +36,10 @@ def echantillonnage_Gibbs(champ_aleatoire, nb_iterations, modele, nom_fichier_pn
     # Déterminer la palette de couleurs et le titre du graphe selon le modèle
     if nb_etats == 2:
         palette = 'gist_yarg'  # Palette pour le modèle d’Ising (binaire)
-        titre_plot = 'MRF : Modèle d’Ising avec échantillonnage de Gibbs'
+        titre_plot = f'MRF : Modèle d’Ising avec échantillonnage de Gibbs \n Force du bruit bruit : {p}'
     else:
         palette = 'Blues'  # Palette pour le modèle de Potts (plusieurs états)
-        titre_plot = 'MRF : Modèle de Potts avec échantillonnage de Gibbs'
+        titre_plot = f'MRF : Modèle de Potts avec échantillonnage de Gibbs \n Force du bruit bruit : {p}'
 
     # Sauvegarder l'état initial si un fichier PNG est spécifié
     if nom_fichier_png is not None:
@@ -151,10 +115,10 @@ def echantillonnage_metropolis(champ_aleatoire, nb_iterations, modele, nom_fichi
 
     if nb_etats == 2:
         palette = 'gist_yarg'
-        titre_principal = 'MRF : Modèle d’Ising avec échantillonnage de Metropolis'
+        titre_principal = f'MRF : Modèle d’Ising avec échantillonnage de Metropolis \n Force du bruit : {p}'
     else:
         palette = 'Blues'
-        titre_principal = 'MRF : Modèle de Potts avec échantillonnage de Metropolis'
+        titre_principal = f'MRF : Modèle de Potts avec échantillonnage de Metropolis \n Force du bruit : {p}'
 
     if nom_fichier_png is not None:
         img_champ = champ_aleatoire * np.floor(255 / (nb_etats - 1))
@@ -242,7 +206,11 @@ def formatter_image_NB(image):
     img = pim.open(image)
     W, _ = img.size
     N = W
-    image = np.array(img)[:,:,0]  # on récupère uniquement la composante Rouge
+    try:
+        image = np.array(img)[:,:,0]  # on récupère uniquement la composante Rouge
+    except:
+        image = np.array(img)  # Image is already grayscale, no need to index RGB channels
+
     image = image.astype(np.int16)
     print(f"image[30] : {image[30]}")
 
@@ -272,9 +240,16 @@ def formatter_image_NB(image):
 ########################################################################################
 ## Fonction pour choisir le modèle et l'algorithme ##
 ########################################################################################
-#sampling_choice = est_argument_vide()
-#sampling_choice = 'gibbs'
-sampling_choice = 'metropolis'
+
+
+sampling_choice = 'gibbs'
+#sampling_choice = 'metropolis'
+#PATH_IMG = '/TER-Reconstitution-Images-Markov/images/'
+PATH_IMG = '/Users/sebych/Documents/Github/TER-Reconstitution-Images-Markov/images/'
+nom_image = 'gatitoo.png'
+
+n = 10**4 # nombre d'itérations
+p = 0.1 # probabilité de bruit
 
 
 # Modèle d'Ising
@@ -285,15 +260,8 @@ Ising_model = {
     'poids_aretes': np.array([[alpha_00_11, alpha_01_10], [alpha_01_10, alpha_00_11]]),
     'poids_sommets': np.zeros(2)
 }
-# Initialisation du champ
-#hrf, wrf = 50, 50  # Dimensions du champ
-#rf = np.uint8(np.floor(Ising_model['nb_etats'] * np.random.rand(hrf, wrf)))  # l'état initial du champ de Markov pour le modèle d'Ising (champ aléatoire)
-#rf_img = rf * np.floor(255 / (Ising_model['nb_etats'] - 1))  # Conversion en image (image 0 pour 0 (noir) et 255 pour 1 (blanc)) / on mult par 0 ou par 255
 
-# Affichage de l'image initiale
-n = 10**4 # nombre d'itérations
-p = 0.2 # probabilité de bruit
-sigma = formatter_image_NB('/Users/sebych/Documents/Github/TER-Reconstitution-Images-Markov/images/immonde3.jpg')
+sigma = formatter_image_NB(f'{PATH_IMG}{nom_image}')
 sigma = sigma.astype(np.int16)
 print(f"sigma après formatage : {sigma[30]}") #vérification des pixels
 
@@ -303,7 +271,7 @@ nom_fichier_png = f'ising_{sampling_choice}.png'
 # Choix de l'algorithme d'échantillonnage
 if sampling_choice == 'gibbs':
     rf = echantillonnage_Gibbs(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
-elif sampling_choice in ['metropolis', 'metro']:
+elif sampling_choice in ['metropolis']:
     U_global = echantillonnage_metropolis(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
 
 # Affichage du résultat
