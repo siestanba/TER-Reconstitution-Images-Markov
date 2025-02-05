@@ -5,13 +5,6 @@ import matplotlib.pyplot as plt
 import sys
 from tqdm import tqdm
 
-# Vérifie si les arguments de la ligne de commande sont présents
-def est_argument_vide():
-    if len(sys.argv) > 1:
-        return sys.argv[1]
-    else:
-        return None
-
 # Renvoie les 4 voisins en connexité 4 d'un pixel (i, j) dans une image de dimensions (h, w)
 def voisinage_4(i, j, hauteur, largeur):
     return (
@@ -29,31 +22,6 @@ def cdf_locale_4(i, j, hauteur, largeur, champ_aleatoire, etat_s, poids_aretes, 
         energie_locale += poids_aretes[etat_s, etat_voisin] # on ajoute l'énergie de la connexion (1 si l'état est différent, 0 sinon) / on compte les voisins différents
     return energie_locale
 
-# Calcule l'attachement des données locales à l'état donné
-def attache_donnees_locale(i, j, etat_s, img, moyenne, echelle):
-    return np.log(echelle[etat_s]) + (img[i, j] - moyenne[etat_s])**2 / (2 * echelle[etat_s]**2)
-
-# Génère tous les sommets et arêtes pour une image de dimensions (h, w)
-def generer_sommets_et_aretes_4(hauteur, largeur):
-    for i in range(hauteur):
-        for j in range(largeur):
-            liste_temporaire = [(i, j)]
-            if j + 1 < largeur:
-                liste_temporaire += [(i, j+1)]
-            if i + 1 < hauteur:
-                liste_temporaire += [(i+1, j)]
-            yield liste_temporaire 
-
-# Calcule l'énergie globale du champ aléatoire
-def energie_globale_4(champ_aleatoire, poids_aretes, poids_sommets):
-    energie_totale = 0
-    hauteur, largeur = champ_aleatoire.shape
-    for element in generer_sommets_et_aretes_4(hauteur, largeur):
-        etat_s = champ_aleatoire[element[0]]
-        energie_totale += poids_sommets[etat_s]
-        for sommet in element[1:]:
-            energie_totale += poids_aretes[etat_s, champ_aleatoire[sommet]]
-    return energie_totale
 
 # Fonction d'échantillonnage de Gibbs
 def echantillonnage_Gibbs(champ_aleatoire, nb_iterations, modele, nom_fichier_png=None):

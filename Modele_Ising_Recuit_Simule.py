@@ -23,87 +23,6 @@ def cdf_locale_4(i, j, hauteur, largeur, champ_aleatoire, etat_s, poids_aretes, 
         energie_locale += poids_aretes[etat_s, etat_voisin] # on ajoute l'énergie de la connexion (1 si l'état est différent, 0 sinon) / on compte les voisins différents
     return energie_locale
 
-# Fonction d'échantillonnage de Gibbs
-def echantillonnage_Gibbs(champ_aleatoire, nb_iterations, modele, nom_fichier_png=None):
-    hauteur, largeur = champ_aleatoire.shape  # Dimensions du champ aléatoire
-    nb_etats = modele['nb_etats']  # Nombre d'états possibles pour chaque pixel
-    poids_aretes = modele['poids_aretes']  # Poids des connexions entre pixels voisins
-    poids_sommets = modele['poids_sommets']  # Poids associés aux états individuels des pixels
-
-    # Déterminer la palette de couleurs et le titre du graphe selon le modèle
-    if nb_etats == 2:
-        palette = 'gist_yarg'  # Palette pour le modèle d’Ising (binaire)
-        titre_plot = f'MRF : Modèle d’Ising avec échantillonnage de Gibbs \n Force du bruit bruit : {p}'
-    else:
-        palette = 'Blues'  # Palette pour le modèle de Potts (plusieurs états)
-        titre_plot = f'MRF : Modèle de Potts avec échantillonnage de Gibbs \n Force du bruit bruit : {p}'
-
-    # Sauvegarder l'état initial si un fichier PNG est spécifié
-    if nom_fichier_png is not None:
-        champ_img = champ_aleatoire * np.floor(255 / (nb_etats - 1))
-        plt.subplot(161)
-        plt.suptitle(titre_plot)
-        plt.title('Initial')
-        plt.xticks([], [])
-        plt.yticks([], [])
-        plt.imshow(champ_img, cmap=palette)
-        nb_sous_plots = 1
-
-    energie_globale = []  # Liste pour stocker les énergies globales
-
-    # Boucle principale d'échantillonnage
-    for k in tqdm(range(nb_iterations)): # tqdm sert à afficher une barre de progression
-        # Sélection aléatoire d'un pixel (i_s, j_s) dans le champ
-        i_s = np.random.randint(0, hauteur)
-        j_s = np.random.randint(0, largeur)
-
-        # Calculer les énergies locales pour chaque état possible
-        energies = np.empty(nb_etats)
-
-        # on calcule l'énergie locale pour chaque état possible (delta_U
-        for i, etat in enumerate(range(nb_etats)):
-            # Calcul de l'énergie locale pour l'état 'etat' au pixel (i_s, j_s)
-            energies[i] = cdf_locale_4(i_s, j_s, hauteur, largeur, champ_aleatoire, etat, poids_aretes, poids_sommets)
-            #print(f"energies[{i}] : {energies[i]}")
-        
-        #print(f"energie finale: {energies}")
-        # on convertit les énergies locales en probabilités (distribution de Gibbs)
-        probabilites = np.exp(-energies)  # Exponentielle des énergies inversées
-        #print(f"probabilites : {probabilites}")
-        probabilites /= np.sum(probabilites)  # on normalise pour obtenir une probabilité
-        #print(f"probabilites : {probabilites}")
-
-        # on choisit un nouvel état selon les probabilités calculées
-        nouvel_etat = np.random.choice(list(range(nb_etats)), 1, p=probabilites)[0] # on choisit le nouvel état
-        champ_aleatoire[i_s, j_s] = nouvel_etat  # on met à jour le pixel
-
-        # Sauvegarder les visualisations intermédiaires si spécifié
-        if nom_fichier_png is not None and (
-            k == np.floor(0.2 * nb_iterations) or
-            k == np.floor(0.4 * nb_iterations) or
-            k == np.floor(0.6 * nb_iterations) or
-            k == np.floor(0.8 * nb_iterations)
-        ):
-            champ_img = champ_aleatoire * np.floor(255 / (nb_etats - 1))
-            plt.subplot(161 + nb_sous_plots)
-            plt.title(str(k))
-            plt.xticks([], [])
-            plt.yticks([], [])
-            plt.imshow(champ_img, cmap=palette)
-            nb_sous_plots += 1
-
-    # Sauvegarder l'état final
-    if nom_fichier_png is not None:
-        champ_img = champ_aleatoire * np.floor(255 / (nb_etats - 1))
-        plt.subplot(161 + nb_sous_plots)
-        plt.title('Final')
-        plt.xticks([], [])
-        plt.yticks([], [])
-        plt.imshow(champ_img, cmap=palette)
-        plt.savefig(nom_fichier_png)
-
-    return energie_globale
-
 def echantillonnage_metropolis(champ_aleatoire, nb_iterations, modele, nom_fichier_png=None):
     hauteur, largeur = champ_aleatoire.shape
     nb_etats = modele['nb_etats']
@@ -130,6 +49,7 @@ def echantillonnage_metropolis(champ_aleatoire, nb_iterations, modele, nom_fichi
     energie_globale = []
 
     for iteration in tqdm(range(nb_iterations)):
+        T = 1/np.log(1+iteration) # On fait tendre la température vers 0 au cours des itérations
         # Sélection aléatoire d'un pixel
         i_pixel = np.random.randint(0, hauteur)
         j_pixel = np.random.randint(0, largeur)
@@ -155,7 +75,7 @@ def echantillonnage_metropolis(champ_aleatoire, nb_iterations, modele, nom_fichi
         if delta_energie_locale < 0:
             champ_aleatoire[i_pixel, j_pixel] = nouvel_etat
         else:
-            if np.random.rand() < np.exp(-delta_energie_locale):
+            if np.random.rand() < np.exp(-delta_energie_locale/T): # On accepte la proposition avec une probabilité qui tend vers 1 quand T tend vers 0
                 champ_aleatoire[i_pixel, j_pixel] = nouvel_etat
 
         # Sauvegarde des images intermédiaires
@@ -255,13 +175,9 @@ sigma = sigma.astype(np.int16)
 print(f"sigma après formatage : {sigma[30]}") #vérification des pixels
 
 # Nom du fichier image
-nom_fichier_png = f'ising_{sampling_choice}.png'
+nom_fichier_png = f'Recuit_Simulé_{sampling_choice}.png'
 
-# Choix de l'algorithme d'échantillonnage
-if sampling_choice == 'gibbs':
-    rf = echantillonnage_Gibbs(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
-elif sampling_choice in ['metropolis']:
-    U_global = echantillonnage_metropolis(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
+U_global = echantillonnage_metropolis(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
 
 # Affichage du résultat
 plt.imread(nom_fichier_png)
