@@ -1,4 +1,4 @@
-### Modèle de Metropolis avec Ising et introduction du paramètre de température(recuit simulé)
+### On introduit les paramètres alpha et beta pour favorises l'attachement à l'image initiale ou à la moyenne des états voisins
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -158,15 +158,15 @@ PATH_IMG = '/Users/sebych/Documents/Github/TER-Reconstitution-Images-Markov/imag
 nom_image = 'souris.png'
 
 n = 10**4 # nombre d'itérations 
-p = 0.1 # probabilité de bruit
+p = 0.15 # probabilité de bruit
 
 
 # Modèle d'Ising
-alpha_00_11 = 0.0  # Poids pour les connexions entre états identiques
-alpha_01_10 = 1.0  # Poids pour les connexions entre états différents
+alpha = 1/3  # Poids pour les connexions entre états identiques
+beta = 2/3  # Poids pour les connexions entre états différents
 Ising_model = {
     'nb_etats': 2,
-    'poids_aretes': np.array([[alpha_00_11, alpha_01_10], [alpha_01_10, alpha_00_11]]),
+    'poids_aretes': np.array([[alpha, beta], [beta, alpha]]),
     'poids_sommets': np.zeros(2)
 }
 
