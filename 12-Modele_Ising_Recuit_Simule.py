@@ -1,4 +1,4 @@
-### On introduit les paramètres alpha et beta pour favorises l'attachement à l'image initiale ou à la moyenne des états voisins
+### Modèle de Metropolis avec Ising et introduction du paramètre de température(recuit simulé)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -108,6 +108,78 @@ def echantillonnage_metropolis(champ_aleatoire, nb_iterations, modele, nom_fichi
 
     return energie_globale
 
+# Fonction d'échantillonnage de Gibbs
+def echantillonnage_Gibbs(champ_aleatoire, nb_iterations, modele, nom_fichier_png=None):
+    hauteur, largeur = champ_aleatoire.shape
+    nb_etats = modele['nb_etats']
+    poids_aretes = modele['poids_aretes']
+    poids_sommets = modele['poids_sommets']
+    p = modele.get("bruit", "?")  # sécurité pour le titre
+
+    # Palette et titre
+    if nb_etats == 2:
+        palette = 'gist_yarg'
+        titre_plot = f'MRF : Modèle d’Ising avec échantillonnage de Gibbs simulé \n Force du bruit : {p}'
+    else:
+        palette = 'Blues'
+        titre_plot = f'MRF : Modèle de Potts avec échantillonnage de Gibbs simulé \n Force du bruit : {p}'
+
+    if nom_fichier_png is not None:
+        champ_img = champ_aleatoire * np.floor(255 / (nb_etats - 1))
+        plt.subplot(161)
+        plt.suptitle(titre_plot)
+        plt.title('Initial')
+        plt.xticks([], [])
+        plt.yticks([], [])
+        plt.imshow(champ_img, cmap=palette)
+        nb_sous_plots = 1
+
+    energie_globale = []
+
+    for k in tqdm(range(nb_iterations)):
+        T = 1 / np.log(2 + k)  # Recuit simulé : température décroissante
+
+        i_s = np.random.randint(0, hauteur)
+        j_s = np.random.randint(0, largeur)
+
+        energies = np.empty(nb_etats)
+        for i, etat in enumerate(range(nb_etats)):
+            energies[i] = cdf_locale_4(i_s, j_s, hauteur, largeur, champ_aleatoire, etat, poids_aretes, poids_sommets)
+
+        # Application du recuit simulé dans Gibbs : division par T
+        probabilites = np.exp(-energies / T)
+        probabilites /= np.sum(probabilites)
+
+        nouvel_etat = np.random.choice(range(nb_etats), p=probabilites)
+        champ_aleatoire[i_s, j_s] = nouvel_etat
+
+        if nom_fichier_png is not None and (
+            k == np.floor(0.2 * nb_iterations) or
+            k == np.floor(0.4 * nb_iterations) or
+            k == np.floor(0.6 * nb_iterations) or
+            k == np.floor(0.8 * nb_iterations)
+        ):
+            champ_img = champ_aleatoire * np.floor(255 / (nb_etats - 1))
+            plt.subplot(161 + nb_sous_plots)
+            plt.title(str(k))
+            plt.xticks([], [])
+            plt.yticks([], [])
+            plt.imshow(champ_img, cmap=palette)
+            nb_sous_plots += 1
+
+    if nom_fichier_png is not None:
+        champ_img = champ_aleatoire * np.floor(255 / (nb_etats - 1))
+        plt.subplot(161 + nb_sous_plots)
+        plt.title('Final')
+        plt.xticks([], [])
+        plt.yticks([], [])
+        plt.imshow(champ_img, cmap=palette)
+        plt.savefig(nom_fichier_png)
+
+    return energie_globale
+
+
+
 ########################################################################################
 ## Def des fonctions pour mettre l'image en noir et blanc ##
 ########################################################################################
@@ -151,22 +223,22 @@ def formatter_image_NB(image):
 ########################################################################################
 
 
-#sampling_choice = 'gibbs'
-sampling_choice = 'metropolis'
+sampling_choice = 'gibbs'
+#sampling_choice = 'metropolis'
 #PATH_IMG = '/TER-Reconstitution-Images-Markov/images/'
 PATH_IMG = '/Users/sebych/Documents/Github/TER-Reconstitution-Images-Markov/images/'
 nom_image = 'souris.png'
 
 n = 10**4 # nombre d'itérations 
-p = 0.15 # probabilité de bruit
+p = 0.1 # probabilité de bruit
 
 
 # Modèle d'Ising
-alpha = 1/3  # Poids pour les connexions entre états identiques
-beta = 2/3  # Poids pour les connexions entre états différents
+alpha_00_11 = 0.0  # Poids pour les connexions entre états identiques
+alpha_01_10 = 1.0  # Poids pour les connexions entre états différents
 Ising_model = {
     'nb_etats': 2,
-    'poids_aretes': np.array([[alpha, beta], [beta, alpha]]),
+    'poids_aretes': np.array([[alpha_00_11, alpha_01_10], [alpha_01_10, alpha_00_11]]),
     'poids_sommets': np.zeros(2)
 }
 
@@ -177,7 +249,11 @@ print(f"sigma après formatage : {sigma[30]}") #vérification des pixels
 # Nom du fichier image
 nom_fichier_png = f'Recuit_Simulé_{sampling_choice}.png'
 
-U_global = echantillonnage_metropolis(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
+# Choix de l'algorithme d'échantillonnage
+if sampling_choice == 'gibbs':
+    rf = echantillonnage_Gibbs(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
+elif sampling_choice in ['metropolis']:
+    U_global = echantillonnage_metropolis(sigma, n, Ising_model, nom_fichier_png=nom_fichier_png)
 
 # Affichage du résultat
 plt.imread(nom_fichier_png)
