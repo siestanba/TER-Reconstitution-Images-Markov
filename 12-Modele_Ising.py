@@ -67,7 +67,7 @@ def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
     axs = axs.flatten()
     for ax, titre, img in zip(axs, titres, imgs):
         ax.imshow(to_image(img), cmap="gray")
-        ax.set_title(titre)
+        ax.set_title(titre, fontsize=25)
         ax.axis("off")
 
     plt.tight_layout()
@@ -75,6 +75,7 @@ def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
 
 # === Paramètres ===
 chemin_image = "images/souris.png"
+#chemin_image = "images/chat.jpg"
 nb_etats = 2
 p_bruit = 0.3
 nb_iter = 100000

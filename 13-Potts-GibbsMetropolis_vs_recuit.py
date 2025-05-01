@@ -95,16 +95,16 @@ def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec
     axs = axs.flatten()
     for ax, titre, img in zip(axs, titres, imgs):
         ax.imshow(to_image(img), cmap="gray")
-        ax.set_title(titre)
+        ax.set_title(titre, fontsize=25)
         ax.axis("off")
     plt.tight_layout()
     plt.show()
 
 # === Paramètres ===
-chemin_image = "images/souris.png"
-nb_etats = 3
+chemin_image = "images/carre.png"
+nb_etats = 4
 p_bruit = 0.3
-nb_iter = 20000
+nb_iter = 100000
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)

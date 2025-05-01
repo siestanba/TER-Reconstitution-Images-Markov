@@ -105,7 +105,7 @@ def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec
     axs = axs.flatten()
     for ax, titre, img in zip(axs, titres, imgs):
         ax.imshow(to_image(img), cmap="gray")
-        ax.set_title(titre)
+        ax.set_title(titre, fontsize=25)
         ax.axis("off")
     plt.tight_layout()
     plt.show()

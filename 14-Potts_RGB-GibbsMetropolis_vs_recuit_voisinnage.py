@@ -38,13 +38,22 @@ def cdf_locale_4(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
             energie += poids_aretes[(etat, champ[ni, nj])]
     return energie
 
+def cdf_locale_8(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
+    voisins = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+    energie = poids_sommets[etat]
+    for dx, dy in voisins:
+        ni, nj = i + dx, j + dy
+        if 0 <= ni < H and 0 <= nj < L:
+            energie += poids_aretes[(etat, champ[ni, nj])]
+    return energie
+
 def gibbs_classique(champ, nb_iter, modele):
     H, L = champ.shape
     for k in tqdm(range(nb_iter), desc="Gibbs classique (Potts)"):
         i = np.random.randint(0, H)
         j = np.random.randint(0, L)
         energies = np.array([
-            cdf_locale_4(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets']) 
+            cdf_locale_8(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets']) 
             for s in range(modele['nb_etats'])
         ])
         proba = np.exp(-energies)
@@ -59,7 +68,7 @@ def gibbs_recuit(champ, nb_iter, modele):
         i = np.random.randint(0, H)
         j = np.random.randint(0, L)
         energies = np.array([
-            cdf_locale_4(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets']) 
+            cdf_locale_8(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets']) 
             for s in range(modele['nb_etats'])
         ])
         proba = np.exp(-energies / T)
@@ -75,8 +84,8 @@ def metropolis_classique(champ, nb_iter, modele):
         j = np.random.randint(0, L)
         etat_actuel = champ[i, j]
         nouvel_etat = np.random.choice([s for s in range(modele['nb_etats']) if s != etat_actuel])
-        energie_actuelle = cdf_locale_4(i, j, H, L, champ, etat_actuel, modele['poids_aretes'], modele['poids_sommets'])
-        energie_nouvelle = cdf_locale_4(i, j, H, L, champ, nouvel_etat, modele['poids_aretes'], modele['poids_sommets'])
+        energie_actuelle = cdf_locale_8(i, j, H, L, champ, etat_actuel, modele['poids_aretes'], modele['poids_sommets'])
+        energie_nouvelle = cdf_locale_8(i, j, H, L, champ, nouvel_etat, modele['poids_aretes'], modele['poids_sommets'])
         delta_E = energie_nouvelle - energie_actuelle
         if delta_E < 0 or np.random.rand() < np.exp(-delta_E / T):
             champ[i, j] = nouvel_etat
@@ -90,8 +99,8 @@ def metropolis_recuit(champ, nb_iter, modele):
         j = np.random.randint(0, L)
         etat_actuel = champ[i, j]
         nouvel_etat = np.random.choice([s for s in range(modele['nb_etats']) if s != etat_actuel])
-        energie_actuelle = cdf_locale_4(i, j, H, L, champ, etat_actuel, modele['poids_aretes'], modele['poids_sommets'])
-        energie_nouvelle = cdf_locale_4(i, j, H, L, champ, nouvel_etat, modele['poids_aretes'], modele['poids_sommets'])
+        energie_actuelle = cdf_locale_8(i, j, H, L, champ, etat_actuel, modele['poids_aretes'], modele['poids_sommets'])
+        energie_nouvelle = cdf_locale_8(i, j, H, L, champ, nouvel_etat, modele['poids_aretes'], modele['poids_sommets'])
         delta_E = energie_nouvelle - energie_actuelle
         if delta_E < 0 or np.random.rand() < np.exp(-delta_E / T):
             champ[i, j] = nouvel_etat
@@ -124,7 +133,7 @@ def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec
 # === Paramètres ===
 chemin_image = "images/oee.png"
 nb_etats = 3
-p_bruit = 0.3
+p_bruit = 0.5
 nb_iter = 100000
 
 # === Exécution ===
