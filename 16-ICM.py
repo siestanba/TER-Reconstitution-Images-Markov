@@ -3,16 +3,19 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from tqdm import tqdm
 
+# === Chargement et quantification de l'image ===
 def charger_image_grayscale(path, nb_etats):
     img = Image.open(path).convert("L").resize((100, 100))
     img_np = np.array(img)
     return np.floor(img_np / (256 / nb_etats)).astype(int)
 
+# === Ajout de bruit aléatoire ===
 def ajouter_bruit(champ, p, nb_etats):
     bruit = np.random.choice(range(nb_etats), size=champ.shape)
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
 
+# === Énergie locale pour un pixel (avec voisins 4-connexes) ===
 def cdf_locale_4(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
     voisins = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     energie = poids_sommets[etat]
@@ -22,9 +25,10 @@ def cdf_locale_4(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
             energie += poids_aretes[(etat, champ[ni, nj])]
     return energie
 
+# === Gibbs classique ===
 def gibbs_classique(champ, nb_iter, modele):
     H, L = champ.shape
-    for k in tqdm(range(nb_iter), desc="Gibbs classique (Potts)"):
+    for k in tqdm(range(nb_iter), desc="Gibbs classique"):
         i = np.random.randint(0, H)
         j = np.random.randint(0, L)
         energies = np.array([
@@ -36,66 +40,49 @@ def gibbs_classique(champ, nb_iter, modele):
         champ[i, j] = np.random.choice(range(modele['nb_etats']), p=proba)
     return champ
 
-def gibbs_recuit(champ, nb_iter, modele, t):
-    H, L = champ.shape
-    for k in tqdm(range(nb_iter), desc="Gibbs recuit simulé (Potts)"):
-        T = t / np.log(2 + k)
-        i = np.random.randint(0, H)
-        j = np.random.randint(0, L)
-        energies = np.array([
-            cdf_locale_4(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets']) 
-            for s in range(modele['nb_etats'])
-        ])
-        proba = np.exp(-energies / T)
-        proba /= np.sum(proba)
-        champ[i, j] = np.random.choice(range(modele['nb_etats']), p=proba)
-    return champ
-
+# === Metropolis classique ===
 def metropolis_classique(champ, nb_iter, modele):
     H, L = champ.shape
-    T = 1
-    for k in tqdm(range(nb_iter), desc="Metropolis classique (Potts)"):
+    T = 1  # Température constante
+    for k in tqdm(range(nb_iter), desc="Metropolis classique"):
         i = np.random.randint(0, H)
         j = np.random.randint(0, L)
         etat_actuel = champ[i, j]
-        nouvel_etat = np.random.choice([s for s in range(modele['nb_etats']) if s != etat_actuel])
         energie_actuelle = cdf_locale_4(i, j, H, L, champ, etat_actuel, modele['poids_aretes'], modele['poids_sommets'])
+        nouvel_etat = np.random.randint(0, modele['nb_etats'])
+        if nouvel_etat == etat_actuel:
+            continue
         energie_nouvelle = cdf_locale_4(i, j, H, L, champ, nouvel_etat, modele['poids_aretes'], modele['poids_sommets'])
         delta_E = energie_nouvelle - energie_actuelle
         if delta_E < 0 or np.random.rand() < np.exp(-delta_E / T):
             champ[i, j] = nouvel_etat
     return champ
 
-def metropolis_recuit(champ, nb_iter, modele, t):
+# === ICM (Iterated Conditional Modes) ===
+def icm(champ, nb_iter, modele):
     H, L = champ.shape
-    for k in tqdm(range(nb_iter), desc="Metropolis recuit simulé (Potts)"):
-        T = t / np.log(2 + k)
-        i = np.random.randint(0, H)
-        j = np.random.randint(0, L)
-        etat_actuel = champ[i, j]
-        nouvel_etat = np.random.choice([s for s in range(modele['nb_etats']) if s != etat_actuel])
-        energie_actuelle = cdf_locale_4(i, j, H, L, champ, etat_actuel, modele['poids_aretes'], modele['poids_sommets'])
-        energie_nouvelle = cdf_locale_4(i, j, H, L, champ, nouvel_etat, modele['poids_aretes'], modele['poids_sommets'])
-        delta_E = energie_nouvelle - energie_actuelle
-        if delta_E < 0 or np.random.rand() < np.exp(-delta_E / T):
-            champ[i, j] = nouvel_etat
+    for _ in tqdm(range(nb_iter), desc="ICM"):
+        for i in range(H):
+            for j in range(L):
+                energies = np.array([
+                    cdf_locale_4(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets']) 
+                    for s in range(modele['nb_etats'])
+                ])
+                champ[i, j] = np.argmin(energies)
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec, nb_etats):
+# === Affichage des résultats ===
+def afficher_resultats_et_icm(img_init, img_bruitee, gibbs, metro, icm_res, nb_etats):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
-    imgs = [img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec]
-    titres = [
-        "Image originale", "Gibbs classique", 
-        "Gibbs recuit simulé", "Image bruitée",
-        "Metropolis classique", "Metropolis recuit simulé"
-    ]
-    fig, axs = plt.subplots(2, 3, figsize=(15, 8))
-    axs = axs.flatten()
+    imgs = [img_init, img_bruitee, gibbs, metro, icm_res]
+    titres = ["Image originale", "Image bruitée", "Gibbs", "Metropolis", "ICM"]
+
+    fig, axs = plt.subplots(1, 5, figsize=(22, 5))
     for ax, titre, img in zip(axs, titres, imgs):
         ax.imshow(to_image(img), cmap="gray")
-        ax.set_title(titre, fontsize=25)
+        ax.set_title(titre, fontsize=18)
         ax.axis("off")
     plt.tight_layout()
     plt.show()
@@ -104,20 +91,22 @@ def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec
 chemin_image = "images/test1.png"
 nb_etats = 3
 p_bruit = 0.3
-nb_iter = 200000
+nb_iter = 10
+nb_iter_icm = 1
 beta = 1
-temp = 1
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
 img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
 champ_gibbs = img_bruitee.copy()
-champ_gibbs_rec = img_bruitee.copy()
 champ_metro = img_bruitee.copy()
-champ_metro_rec = img_bruitee.copy()
+champ_icm = img_bruitee.copy()
 
-#poids_aretes = {(a, b): -1 if a == b else 1 for a in range(nb_etats) for b in range(nb_etats)}
-poids_aretes = {(a, b): beta * (-1 if a == b else 1) for a in range(nb_etats) for b in range(nb_etats)}
+# === Modèle de Potts avec pondération bêta ===
+poids_aretes = {
+    (a, b): beta * (-1 if a == b else 1)
+    for a in range(nb_etats) for b in range(nb_etats)
+}
 poids_sommets = [0] * nb_etats
 modele = {
     'nb_etats': nb_etats,
@@ -125,9 +114,10 @@ modele = {
     'poids_sommets': poids_sommets
 }
 
+# === Traitement par les algorithmes ===
 champ_gibbs = gibbs_classique(champ_gibbs, nb_iter, modele)
-champ_gibbs_rec = gibbs_recuit(champ_gibbs_rec, nb_iter, modele, temp)
 champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
-champ_metro_rec = metropolis_recuit(champ_metro_rec, nb_iter, modele, temp)
+champ_icm = icm(champ_icm, nb_iter_icm, modele)
 
-afficher_resultats(img, champ_gibbs, champ_gibbs_rec, img_bruitee, champ_metro, champ_metro_rec, nb_etats)
+# === Affichage final ===
+afficher_resultats_et_icm(img, img_bruitee, champ_gibbs, champ_metro, champ_icm, nb_etats)
