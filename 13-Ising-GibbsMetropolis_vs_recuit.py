@@ -87,34 +87,46 @@ def metropolis_recuit(champ, nb_iter, modele):
             champ[i, j] = nouvel_etat
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec, nb_etats):
+def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec, nb_etats, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
-    imgs = [img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec]
-
-
+    imgs = [img_init, gibbs, gibbs_rec, img_bruitee, metro, metro_rec]
     titres = [
-        "Image originale", "Gibbs classique", 
+        "Image originale", "Gibbs classique",
         "Gibbs recuit simulé", "Image bruitée",
         "Metropolis classique", "Metropolis recuit simulé"
     ]
+    taux = [None, taux_gibbs, taux_gibbs_rec, None, taux_metro, taux_metro_rec]
 
-
-    fig, axs = plt.subplots(2, 3, figsize=(15, 8))
+    fig, axs = plt.subplots(2, 3, figsize=(15, 8))  # 2x3 = 6 images
     axs = axs.flatten()
-    for ax, titre, img in zip(axs, titres, imgs):
+
+    for i, (ax, titre, img, taux_rest) in enumerate(zip(axs, titres, imgs, taux)):
         ax.imshow(to_image(img), cmap="gray")
-        ax.set_title(titre, fontsize=25)
+        ax.set_title(titre, fontsize=20)
         ax.axis("off")
+        
+        if taux_rest is not None:
+            # Ajouter le taux sous le titre
+            ax.text(0.5, -0.2, f'Taux de restauration: {taux_rest:.2f}%', ha='center', va='center', transform=ax.transAxes, fontsize=15)
+
     plt.tight_layout()
     plt.show()
 
+def taux_restauration(img_originale, img_restauree):
+    pixels_corrects = np.sum(img_originale == img_restauree)
+    total_pixels = img_originale.size
+    taux = (pixels_corrects / total_pixels) * 100
+    return taux
+
 # === Paramètres ===
 chemin_image = "images/souris.png"
+#chemin_image = "images/chat.jpg"
 nb_etats = 2
 p_bruit = 0.3
 nb_iter = 100000
+beta = 1
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
@@ -137,4 +149,11 @@ champ_gibbs_rec = gibbs_recuit(champ_gibbs_rec, nb_iter, modele)
 champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
 champ_metro_rec = metropolis_recuit(champ_metro_rec, nb_iter, modele)
 
-afficher_resultats(img, champ_gibbs, champ_gibbs_rec, img_bruitee, champ_metro, champ_metro_rec, nb_etats)
+# Calcul du taux de restauration pour les deux estimateurs
+taux_gibbs = taux_restauration(img, champ_gibbs)
+taux_gibbs_rec = taux_restauration(img, champ_gibbs_rec)
+taux_metro = taux_restauration(img, champ_metro)
+taux_metro_rec = taux_restauration(img, champ_metro_rec)
+
+# Affichage des résultats
+afficher_resultats(img, img_bruitee, champ_gibbs, champ_gibbs_rec, champ_metro, champ_metro_rec, nb_etats, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec)

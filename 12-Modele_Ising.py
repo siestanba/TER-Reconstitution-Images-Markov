@@ -51,7 +51,7 @@ def metropolis_classique(champ, nb_iter, modele):
             champ[i, j] = nouvel_etat
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
+def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats, taux_gibbs, taux_metro):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
@@ -60,16 +60,28 @@ def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
         "Image originale", "Gibbs classique",
         "Image bruitée", "Metropolis classique"
     ]
+    taux = [None, taux_gibbs, None, taux_metro]
 
     fig, axs = plt.subplots(2, 2, figsize=(10, 10))  # 2x2 = 4 images
     axs = axs.flatten()
-    for ax, titre, img in zip(axs, titres, imgs):
+
+    for i, (ax, titre, img, taux_rest) in enumerate(zip(axs, titres, imgs, taux)):
         ax.imshow(to_image(img), cmap="gray")
         ax.set_title(titre, fontsize=25)
         ax.axis("off")
+        
+        if taux_rest is not None:
+            # Ajouter le taux sous le titre
+            ax.text(0.5, -0.2, f'Taux de restauration: {taux_rest:.2f}%', ha='center', va='center', transform=ax.transAxes, fontsize=15)
 
     plt.tight_layout()
     plt.show()
+
+def taux_restauration(img_originale, img_restauree):
+    pixels_corrects = np.sum(img_originale == img_restauree)
+    total_pixels = img_originale.size
+    taux = (pixels_corrects / total_pixels) * 100
+    return taux
 
 # === Paramètres ===
 chemin_image = "images/souris.png"
@@ -100,6 +112,9 @@ modele = {
 champ_gibbs = gibbs_classique(champ_gibbs, nb_iter, modele)
 champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
 
-print('hello')
-print(poids_aretes)
-afficher_resultats(img, img_bruitee, champ_gibbs, champ_metro, nb_etats)
+# Calcul du taux de restauration pour les deux estimateurs
+taux_gibbs = taux_restauration(img, champ_gibbs)
+taux_metro = taux_restauration(img, champ_metro)
+
+# Affichage des résultats
+afficher_resultats(img, img_bruitee, champ_gibbs, champ_metro, nb_etats, taux_gibbs, taux_metro)
