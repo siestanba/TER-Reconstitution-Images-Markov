@@ -51,29 +51,24 @@ def metropolis_classique(champ, nb_iter, modele):
             champ[i, j] = nouvel_etat
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats, taux_gibbs, taux_metro):
+def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats, taux, taux_base, taux_gibbs, taux_metro):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
     imgs = [img_init, gibbs, img_bruitee, metro]
     titres = [
-        "Image originale", "Gibbs classique",
-        "Image bruitée", "Metropolis classique"
+        f"Image originale \n(ε={taux:.2f})", f"Gibbs classique \n(ε={taux_gibbs:.2f})",
+        f"Image bruitée \n(ε={taux_base:.2f})", f"Metropolis classique \n(ε={taux_metro:.2f})"
     ]
-    taux = [None, taux_gibbs, None, taux_metro]
 
     fig, axs = plt.subplots(2, 2, figsize=(10, 10))  # 2x2 = 4 images
     axs = axs.flatten()
 
-    for i, (ax, titre, img, taux_rest) in enumerate(zip(axs, titres, imgs, taux)):
+    for i, (ax, titre, img) in enumerate(zip(axs, titres, imgs)):
         ax.imshow(to_image(img), cmap="gray")
         ax.set_title(titre, fontsize=25)
         ax.axis("off")
         
-        if taux_rest is not None:
-            # Ajouter le taux sous le titre
-            ax.text(0.5, -0.2, f'Taux de restauration: {taux_rest:.2f}%', ha='center', va='center', transform=ax.transAxes, fontsize=15)
-
     plt.tight_layout()
     plt.show()
 
@@ -113,8 +108,10 @@ champ_gibbs = gibbs_classique(champ_gibbs, nb_iter, modele)
 champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
 
 # Calcul du taux de restauration pour les deux estimateurs
+taux = taux_restauration(img, img)
+taux_base = taux_restauration(img, img_bruitee)
 taux_gibbs = taux_restauration(img, champ_gibbs)
 taux_metro = taux_restauration(img, champ_metro)
 
 # Affichage des résultats
-afficher_resultats(img, img_bruitee, champ_gibbs, champ_metro, nb_etats, taux_gibbs, taux_metro)
+afficher_resultats(img, img_bruitee, champ_gibbs, champ_metro, nb_etats, taux, taux_base, taux_gibbs, taux_metro)

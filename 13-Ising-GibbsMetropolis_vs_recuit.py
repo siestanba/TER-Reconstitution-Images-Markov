@@ -87,30 +87,25 @@ def metropolis_recuit(champ, nb_iter, modele):
             champ[i, j] = nouvel_etat
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec, nb_etats, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec):
+def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec, nb_etats, taux, taux_base, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
     imgs = [img_init, gibbs, gibbs_rec, img_bruitee, metro, metro_rec]
     titres = [
-        "Image originale", "Gibbs classique",
-        "Gibbs recuit simulé", "Image bruitée",
-        "Metropolis classique", "Metropolis recuit simulé"
+        f"Image originale \n(ε={taux:.2f})", f"Gibbs classique \n(ε={taux_gibbs:.2f})",
+        f"Gibbs recuit simulé \n(ε={taux_gibbs_rec:.2f})", f"Image bruitée \n(ε={taux_base:.2f})",
+        f"Metropolis classique \n(ε={taux_metro:.2f})", f"Metropolis recuit simulé \n(ε={taux_metro_rec:.2f})"
     ]
-    taux = [None, taux_gibbs, taux_gibbs_rec, None, taux_metro, taux_metro_rec]
 
     fig, axs = plt.subplots(2, 3, figsize=(15, 8))  # 2x3 = 6 images
     axs = axs.flatten()
 
-    for i, (ax, titre, img, taux_rest) in enumerate(zip(axs, titres, imgs, taux)):
+    for i, (ax, titre, img) in enumerate(zip(axs, titres, imgs)):
         ax.imshow(to_image(img), cmap="gray")
-        ax.set_title(titre, fontsize=20)
+        ax.set_title(titre, fontsize=25)
         ax.axis("off")
         
-        if taux_rest is not None:
-            # Ajouter le taux sous le titre
-            ax.text(0.5, -0.2, f'Taux de restauration: {taux_rest:.2f}%', ha='center', va='center', transform=ax.transAxes, fontsize=15)
-
     plt.tight_layout()
     plt.show()
 
@@ -150,10 +145,12 @@ champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
 champ_metro_rec = metropolis_recuit(champ_metro_rec, nb_iter, modele)
 
 # Calcul du taux de restauration pour les deux estimateurs
+taux = taux_restauration(img, img)
+taux_base = taux_restauration(img, img_bruitee)
 taux_gibbs = taux_restauration(img, champ_gibbs)
 taux_gibbs_rec = taux_restauration(img, champ_gibbs_rec)
 taux_metro = taux_restauration(img, champ_metro)
 taux_metro_rec = taux_restauration(img, champ_metro_rec)
 
 # Affichage des résultats
-afficher_resultats(img, img_bruitee, champ_gibbs, champ_gibbs_rec, champ_metro, champ_metro_rec, nb_etats, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec)
+afficher_resultats(img, img_bruitee, champ_gibbs, champ_gibbs_rec, champ_metro, champ_metro_rec, nb_etats, taux, taux_base, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec)

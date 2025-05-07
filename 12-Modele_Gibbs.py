@@ -51,14 +51,14 @@ def metropolis_classique(champ, nb_iter, modele):
             champ[i, j] = nouvel_etat
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
+def afficher_resultats(img_init, champ_gibbs, img_bruitee, champ_metro, nb_etats, taux, taux_base, taux_gibbs, taux_metro):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
-    imgs = [img_init, img_bruitee, gibbs, metro]
+    imgs = [img_init, champ_gibbs, img_bruitee, champ_metro]
     titres = [
-        "Image originale", "Gibbs classique", 
-        "Image bruitée", "Metropolis classique"
+        f"Image originale \n(ε={taux:.2f})", f"Gibbs classique \n(ε={taux_gibbs:.2f})",
+        f"Image bruitée \n(ε={taux_base:.2f})", f"Metropolis classique \n(ε={taux_metro:.2f})"
     ]
     fig, axs = plt.subplots(2, 2, figsize=(15, 8))
     axs = axs.flatten()
@@ -68,6 +68,13 @@ def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
         ax.axis("off")
     plt.tight_layout()
     plt.show()
+
+def taux_restauration(img_originale, img_restauree):
+    pixels_corrects = np.sum(img_originale == img_restauree)
+    total_pixels = img_originale.size
+    taux = (pixels_corrects / total_pixels) * 100
+    return taux
+
 
 # === Paramètres ===
 chemin_image = "images/gris.png"
@@ -94,4 +101,12 @@ modele = {
 champ_gibbs = gibbs_classique(champ_gibbs, nb_iter, modele)
 champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
 
-afficher_resultats(img, champ_gibbs, img_bruitee, champ_metro, nb_etats)
+# Calcul du taux de restauration pour les deux estimateurs
+
+taux = taux_restauration(img, img)
+taux_base = taux_restauration(img, img_bruitee)
+taux_gibbs = taux_restauration(img, champ_gibbs)
+taux_metro = taux_restauration(img, champ_metro)
+
+# Affichage des résultats
+afficher_resultats(img, champ_gibbs, img_bruitee, champ_metro, nb_etats, taux, taux_base, taux_gibbs, taux_metro)

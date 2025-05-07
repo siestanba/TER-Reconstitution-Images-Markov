@@ -81,15 +81,15 @@ def metropolis_recuit(champ, nb_iter, modele, t):
             champ[i, j] = nouvel_etat
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec, nb_etats):
+def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec, nb_etats, taux, taux_base, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
-    imgs = [img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec]
+    imgs = [img_init, gibbs, gibbs_rec, img_bruitee, metro, metro_rec]
     titres = [
-        "Image originale", "Gibbs classique", 
-        "Gibbs recuit simulé", "Image bruitée",
-        "Metropolis classique", "Metropolis recuit simulé"
+        f"Image originale \n(ε={taux:.2f})", f"Gibbs classique \n(ε={taux_gibbs:.2f})",
+        f"Gibbs recuit simulé \n(ε={taux_gibbs_rec:.2f})", f"Image bruitée \n(ε={taux_base:.2f})",
+        f"Metropolis classique \n(ε={taux_metro:.2f})", f"Metropolis recuit simulé \n(ε={taux_metro_rec:.2f})"
     ]
     fig, axs = plt.subplots(2, 3, figsize=(15, 8))
     axs = axs.flatten()
@@ -100,11 +100,17 @@ def afficher_resultats(img_init, img_bruitee, gibbs, gibbs_rec, metro, metro_rec
     plt.tight_layout()
     plt.show()
 
+def taux_restauration(img_originale, img_restauree):
+    pixels_corrects = np.sum(img_originale == img_restauree)
+    total_pixels = img_originale.size
+    taux = (pixels_corrects / total_pixels) * 100
+    return taux
+
 # === Paramètres ===
 chemin_image = "images/test1.png"
 nb_etats = 3
 p_bruit = 0.3
-nb_iter = 200000
+nb_iter = 100000
 beta = 1
 temp = 1
 
@@ -130,4 +136,13 @@ champ_gibbs_rec = gibbs_recuit(champ_gibbs_rec, nb_iter, modele, temp)
 champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
 champ_metro_rec = metropolis_recuit(champ_metro_rec, nb_iter, modele, temp)
 
-afficher_resultats(img, champ_gibbs, champ_gibbs_rec, img_bruitee, champ_metro, champ_metro_rec, nb_etats)
+# Calcul du taux de restauration pour les deux estimateurs
+taux = taux_restauration(img, img)
+taux_base = taux_restauration(img, img_bruitee)
+taux_gibbs = taux_restauration(img, champ_gibbs)
+taux_gibbs_rec = taux_restauration(img, champ_gibbs_rec)
+taux_metro = taux_restauration(img, champ_metro)
+taux_metro_rec = taux_restauration(img, champ_metro_rec)
+
+# Affichage des résultats
+afficher_resultats(img, img_bruitee, champ_gibbs, champ_gibbs_rec, champ_metro, champ_metro_rec, nb_etats, taux, taux_base, taux_gibbs, taux_metro, taux_gibbs_rec, taux_metro_rec)

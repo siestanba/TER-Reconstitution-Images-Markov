@@ -53,12 +53,11 @@ def estimateur_map_recuit(champ, observation, nb_iter, modele, sigma2, t=1.0):
     return champ
 
 
-
 # === Visualisation ===
-def afficher_resultats_multi_map(img_init, img_bruitee, map1, map2, map3, nb_etats):
+def afficher_resultats_multi_map(img_init, img_bruitee, map1, map2, map3, nb_etats, taux, taux_base, taux_map1, taux_map2, taux_map3):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
-    titres = ["Image originale", "Image bruitée", f"MAP (β={beta1}, σ²={sigma1})", f"MAP (β={beta2}, σ²={sigma2})", f"MAP (β={beta3}, σ²={sigma3})"]
+    titres = [f"Image originale \n(ε={taux:.2f})", f"Image bruitée \n(ε={taux_base:.2f})", f"MAP (β={beta1}, σ²={sigma1}) \n(ε={taux_map1:.2f})", f"MAP (β={beta2}, σ²={sigma2}) \n(ε={taux_map2:.2f})", f"MAP (β={beta3}, σ²={sigma3}) \n(ε={taux_map3:.2f})"]
     images = [img_init, img_bruitee, map1, map2, map3]
     fig, axs = plt.subplots(1, 5, figsize=(20, 5))
     for ax, titre, img in zip(axs, titres, images):
@@ -67,6 +66,13 @@ def afficher_resultats_multi_map(img_init, img_bruitee, map1, map2, map3, nb_eta
         ax.axis("off")
     plt.tight_layout()
     plt.show()
+
+def taux_restauration(img_originale, img_restauree):
+    pixels_corrects = np.sum(img_originale == img_restauree)
+    total_pixels = img_originale.size
+    taux = (pixels_corrects / total_pixels) * 100
+    return taux
+
 
 # === Paramètres ===
 chemin_image = "images/test1.png"
@@ -99,5 +105,13 @@ poids_aretes3 = {(a, b): beta3 * (-1 if a == b else 1) for a in range(nb_etats) 
 modele3 = {'nb_etats': nb_etats, 'poids_aretes': poids_aretes3, 'poids_sommets': [0] * nb_etats}
 map3 = estimateur_map(champ_init.copy(), img_bruitee, nb_iter, modele3, sigma3)
 
+# Calcul des taux de restauration
+taux = taux_restauration(img, img)
+taux_base = taux_restauration(img, img_bruitee)
+taux_map1 = taux_restauration(img, map1)
+taux_map2 = taux_restauration(img, map2)
+taux_map3 = taux_restauration(img, map3)
+
+
 # Affichage final
-afficher_resultats_multi_map(img, img_bruitee, map1, map2, map3, nb_etats)
+afficher_resultats_multi_map(img, img_bruitee, map1, map2, map3, nb_etats, taux, taux_base, taux_map1, taux_map2, taux_map3)

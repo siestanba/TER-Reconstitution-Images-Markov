@@ -35,17 +35,33 @@ def energie_locale(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
             energie += poids_aretes[(etat, champ[ni, nj])]
     return energie
 
+# === Calcul de l'énergie locale pour MAP (avec attache aux données) ===
+def energie_locale_map(i, j, H, L, champ, etat, poids_aretes, observation, sigma2):
+    """
+    même chose avec attache aux données
+    """
+    voisins = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    energie = ((etat - observation[i, j]) ** 2) / (2 * sigma2)
+    for dx, dy in voisins:
+        ni, nj = i + dx, j + dy
+        if 0 <= ni < H and 0 <= nj < L:
+            energie += poids_aretes[(etat, champ[ni, nj])]
+    return energie
+
+
 # === Estimateur MAP via recuit simulé (minimisation de U(x|y)) ===
-def estimateur_map(champ, nb_iter, modele):
+def estimateur_map(champ, observation, nb_iter, modele, sigma2, t_init=1.0):
     H, L = champ.shape
-    for k in tqdm(range(nb_iter), desc="MAP - Recuit simulé"):
-        T = 1 / np.log(2 + k)  # Température décroissante
+    for k in tqdm(range(nb_iter), desc="MAP - recuit simulé"):
+        T = t_init / np.log(2 + k)
         i, j = np.random.randint(H), np.random.randint(L)
         energies = np.array([
-            energie_locale(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets'])
+            energie_locale_map(i, j, H, L, champ, s, modele['poids_aretes'], observation, sigma2)
             for s in range(modele['nb_etats'])
         ])
-        champ[i, j] = np.argmin(energies)
+        proba = np.exp(-energies / T)
+        proba /= np.sum(proba)
+        champ[i, j] = np.random.choice(range(modele['nb_etats']), p=proba)
     return champ
 
 # === Génération d'échantillons Gibbs pour MPM / TPM ===
@@ -80,11 +96,14 @@ def estimateur_tpm(samples):
     return np.round(np.mean(np.array(samples), axis=0)).astype(int)
 
 # === Visualisation ===
-def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etats):
+def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
     
-    titres = ["Image originale", "Image bruitée", "MAP", "MPM", "TPM"]
+    titres = [
+        f"Image originale \n(ε={taux:.2f})", f"Image bruitée \n(ε={taux_base:.2f})", 
+        f"MAP \n(ε={taux_map:.2f})", f"MPM \n(ε={taux_mpm:.2f})", f"TMP \n(ε={taux_tpm:.2f})"    
+    ]
     images = [img_init, img_bruitee, map_est, mpm_est, tpm_est]
     
     fig, axs = plt.subplots(1, 5, figsize=(20, 5))
@@ -95,6 +114,11 @@ def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etat
     plt.tight_layout()
     plt.show()
 
+def taux_restauration(img_originale, img_restauree):
+    pixels_corrects = np.sum(img_originale == img_restauree)
+    total_pixels = img_originale.size
+    taux = (pixels_corrects / total_pixels) * 100
+    return taux
 
 # === Paramètres ===
 chemin_image = "images/test1.png"
@@ -102,6 +126,7 @@ nb_etats = 3
 p_bruit = 0.3
 nb_iter = 100000
 beta = 0.5
+sigma2 = 2
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
@@ -122,12 +147,20 @@ modele = {
 }
 
 # MAP
-map_est = estimateur_map(champ_init.copy(), nb_iter, modele)
+map_est = estimateur_map(champ_init.copy(), img_bruitee, nb_iter, modele, sigma2)
 
 # MCMC
 mcmc_samples = gibbs_mcmc(champ_init.copy(), nb_iter, modele)
 mpm_est = estimateur_mpm(mcmc_samples, nb_etats)
 tpm_est = estimateur_tpm(mcmc_samples)
 
+# Calcul du taux de restauration pour les deux estimateurs
+taux = taux_restauration(img, img)
+taux_base = taux_restauration(img, img_bruitee)
+taux_map = taux_restauration(img, map_est)
+taux_mpm = taux_restauration(img, mpm_est)
+taux_tpm = taux_restauration(img, tpm_est)
+
+
 # Affichage final
-afficher_resultats(img, img_bruitee, map_est, mpm_est, tpm_est, nb_etats)
+afficher_resultats(img, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm)

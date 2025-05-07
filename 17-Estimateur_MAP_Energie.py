@@ -73,12 +73,17 @@ def estimateur_map_recuit(champ, observation, nb_iter, modele, sigma2, t_init=1.
     return champ, energies
 
 # === Visualisation comparée MAP vs MAP recuit simulé ===
-def afficher_map_vs_recuit(img_init, img_bruitee, map_est, map_recuit_est, nb_etats):
+def afficher_map_vs_recuit(img_init, img_bruitee, map_est, map_recuit_est, nb_etats, taux, taux_base, taux_map, taux_mapr):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
 
     images = [img_init, img_bruitee, map_est, map_recuit_est]
-    titres = ["Image originale", "Image bruitée", "MAP (descente locale)", "MAP (recuit simulé)"]
+    #titres = ["Image originale", "Image bruitée", "MAP (descente locale)", "MAP (recuit simulé)"]
+
+    titres = [
+        f"Image originale \n(ε={taux:.2f})", f"Image bruitée \n(ε={taux_base:.2f})", 
+        f"MAP (descente locale) \n(ε={taux_map:.2f})", f"MAP (recuit simulé) \n(ε={taux_mapr:.2f})"   
+    ]
 
     fig, axs = plt.subplots(1, 4, figsize=(18, 5))
     for ax, titre, img in zip(axs, titres, images):
@@ -100,6 +105,13 @@ def tracer_energie(energies_map, energies_recuit):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+
+def taux_restauration(img_originale, img_restauree):
+    pixels_corrects = np.sum(img_originale == img_restauree)
+    total_pixels = img_originale.size
+    taux = (pixels_corrects / total_pixels) * 100
+    return taux
+
 
 # === Paramètres ===
 chemin_image = "images/test1.png"
@@ -131,6 +143,12 @@ modele = {
 map_est, energie_map = estimateur_map(champ_init.copy(), img_bruitee, nb_iter, modele, sigma2)
 map_recuit, energie_recuit = estimateur_map_recuit(champ_init.copy(), img_bruitee, nb_iter, modele, sigma2, t_init)
 
+taux = taux_restauration(img, img)
+taux_base = taux_restauration(img, img_bruitee)
+taux_map = taux_restauration(img, map_est)
+taux_mapr = taux_restauration(img, map_recuit)
+
+
 # === Affichage des résultats ===
-afficher_map_vs_recuit(img, img_bruitee, map_est, map_recuit, nb_etats)
+afficher_map_vs_recuit(img, img_bruitee, map_est, map_recuit, nb_etats, taux, taux_base, taux_map, taux_mapr)
 tracer_energie(energie_map, energie_recuit)
