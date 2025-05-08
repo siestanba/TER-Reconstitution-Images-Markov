@@ -6,47 +6,49 @@ from tqdm import tqdm
 def charger_image_grayscale(path, nb_etats):
     img = Image.open(path).convert("L").resize((100, 100))
     img_np = np.array(img)
-    img_bin = np.floor(img_np / (256 / nb_etats)).astype(int)  # 0 ou 1
-    return 2 * img_bin - 1  # transforme en -1 ou +1
+    return np.floor(img_np / (256 / nb_etats)).astype(int)
 
 def ajouter_bruit(champ, p, nb_etats):
-    bruit = np.random.choice([-1, 1], size=champ.shape)
+    bruit = np.random.choice(range(nb_etats), size=champ.shape)
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
 
-def energie_locale_ising(i, j, H, L, champ, etat, beta, B):
+def cdf_locale_4(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
     voisins = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    somme_voisins = 0
+    energie = poids_sommets[etat]
     for dx, dy in voisins:
         ni, nj = i + dx, j + dy
         if 0 <= ni < H and 0 <= nj < L:
-            somme_voisins += champ[ni, nj]
-    energie = -beta * etat * somme_voisins - B * etat
+            energie += poids_aretes[(etat, champ[ni, nj])]
     return energie
 
-def gibbs_ising(champ, nb_iter, beta, B):
+def gibbs_classique(champ, nb_iter, modele):
     H, L = champ.shape
-    for _ in tqdm(range(nb_iter), desc="Gibbs Ising"):
-        i, j = np.random.randint(0, H), np.random.randint(0, L)
-        energies = []
-        for s in [-1, 1]:
-            e = energie_locale_ising(i, j, H, L, champ, s, beta, B)
-            energies.append(np.exp(-e))
-        proba = energies / np.sum(energies)
-        champ[i, j] = np.random.choice([-1, 1], p=proba)
+    for k in tqdm(range(nb_iter), desc="Gibbs classique"):
+        i = np.random.randint(0, H)
+        j = np.random.randint(0, L)
+        energies = np.array([
+            cdf_locale_4(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets']) 
+            for s in range(modele['nb_etats'])
+        ])
+        proba = np.exp(-energies)
+        proba /= np.sum(proba)
+        champ[i, j] = np.random.choice(range(modele['nb_etats']), p=proba)
     return champ
 
-def metropolis_ising(champ, nb_iter, beta, B):
+def metropolis_classique(champ, nb_iter, modele):
     H, L = champ.shape
-    for _ in tqdm(range(nb_iter), desc="Metropolis Ising"):
-        i, j = np.random.randint(0, H), np.random.randint(0, L)
+    T = 1
+    for k in tqdm(range(nb_iter), desc="Metropolis classique (Potts)"):
+        i = np.random.randint(0, H)
+        j = np.random.randint(0, L)
         etat_actuel = champ[i, j]
-        etat_nouveau = -etat_actuel
-        E_actuel = energie_locale_ising(i, j, H, L, champ, etat_actuel, beta, B)
-        E_nouveau = energie_locale_ising(i, j, H, L, champ, etat_nouveau, beta, B)
-        delta_E = E_nouveau - E_actuel
-        if delta_E < 0 or np.random.rand() < np.exp(-delta_E):
-            champ[i, j] = etat_nouveau
+        nouvel_etat = np.random.choice([s for s in range(modele['nb_etats']) if s != etat_actuel])
+        energie_actuelle = cdf_locale_4(i, j, H, L, champ, etat_actuel, modele['poids_aretes'], modele['poids_sommets'])
+        energie_nouvelle = cdf_locale_4(i, j, H, L, champ, nouvel_etat, modele['poids_aretes'], modele['poids_sommets'])
+        delta_E = energie_nouvelle - energie_actuelle
+        if delta_E < 0 or np.random.rand() < np.exp(-delta_E / T):
+            champ[i, j] = nouvel_etat
     return champ
 
 def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats, taux, taux_base, taux_gibbs, taux_metro):
@@ -59,7 +61,7 @@ def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats, taux, taux
         f"Image bruitée \n(ε={taux_base:.2f})", f"Metropolis classique \n(ε={taux_metro:.2f})"
     ]
 
-    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))  # 2x2 = 4 images
     axs = axs.flatten()
 
     for i, (ax, titre, img) in enumerate(zip(axs, titres, imgs)):
@@ -83,8 +85,6 @@ nb_etats = 2
 p_bruit = 0.3
 nb_iter = 100000
 beta = 1
-B = 0.0  # champ externe nul
-
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
@@ -92,8 +92,20 @@ img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
 champ_gibbs = img_bruitee.copy()
 champ_metro = img_bruitee.copy()
 
-champ_gibbs = gibbs_ising(champ_gibbs, nb_iter, beta, B)
-champ_metro = metropolis_ising(champ_metro, nb_iter, beta, B)
+#poids_aretes = {(a, b): -1 if a == b else 1 for a in range(nb_etats) for b in range(nb_etats)}
+poids_aretes = {
+    (a, b): -beta * (1 if a == b else -1)
+    for a in range(nb_etats) for b in range(nb_etats)
+}
+poids_sommets = [0] * nb_etats
+modele = {
+    'nb_etats': nb_etats,
+    'poids_aretes': poids_aretes,
+    'poids_sommets': poids_sommets
+}
+
+champ_gibbs = gibbs_classique(champ_gibbs, nb_iter, modele)
+champ_metro = metropolis_classique(champ_metro, nb_iter, modele)
 
 # Calcul du taux de restauration pour les deux estimateurs
 taux = taux_restauration(img, img)

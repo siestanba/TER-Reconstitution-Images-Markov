@@ -96,22 +96,29 @@ def estimateur_tpm(samples):
     return np.round(np.mean(np.array(samples), axis=0)).astype(int)
 
 # === Visualisation ===
-def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm):
+def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm, beta, sigma2, p_bruit, nb_iter):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
-    
+
     titres = [
-        f"Image originale \n(ε={taux:.2f})", f"Image bruitée \n(ε={taux_base:.2f})", 
-        f"MAP \n(ε={taux_map:.2f})", f"MPM \n(ε={taux_mpm:.2f})", f"TMP \n(ε={taux_tpm:.2f})"    
+        f"Image originale\n(ε={taux:.2f})",
+        f"Image bruitée\n(ε={taux_base:.2f})",
+        f"MAP\n(ε={taux_map:.2f})",
+        f"MPM\n(ε={taux_mpm:.2f})",
+        f"TMP\n(ε={taux_tpm:.2f})"
     ]
     images = [img_init, img_bruitee, map_est, mpm_est, tpm_est]
-    
-    fig, axs = plt.subplots(1, 5, figsize=(20, 5))
+
+    fig, axs = plt.subplots(1, 5, figsize=(22, 6))
     for ax, titre, img in zip(axs, titres, images):
         ax.imshow(to_image(img), cmap="gray")
-        ax.set_title(titre, fontsize=25)
+        ax.set_title(titre, fontsize=22)
         ax.axis("off")
-    plt.tight_layout()
+
+    param_text = f"Paramètres : nb_etats={nb_etats}, p_bruit={p_bruit}, nb_iter={nb_iter}, β={beta}, σ²={sigma2}"
+    fig.text(0.5, 0.1, param_text, ha='center', fontsize=16)
+
+    plt.tight_layout(rect=[0, 0.05, 1, 1])
     plt.show()
 
 def taux_restauration(img_originale, img_restauree):
@@ -121,12 +128,12 @@ def taux_restauration(img_originale, img_restauree):
     return taux
 
 # === Paramètres ===
-chemin_image = "images/test1.png"
-nb_etats = 3
+chemin_image = "images/crane-1.jpg"
+nb_etats = 16
 p_bruit = 0.3
-nb_iter = 100000
-beta = 0.5
-sigma2 = 2
+nb_iter = 200000
+beta = 2
+sigma2 = 4
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
@@ -163,4 +170,4 @@ taux_tpm = taux_restauration(img, tpm_est)
 
 
 # Affichage final
-afficher_resultats(img, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm)
+afficher_resultats(img, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm, beta, sigma2, p_bruit, nb_iter)

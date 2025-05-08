@@ -96,12 +96,12 @@ def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etat
     plt.show()
 
 # === Paramètres ===
-chemin_image = "images/test1.png"
-nb_etats = 3
-p_bruit = 0.3
-nb_iter = 10000000
-beta = 0.5
-sigma2 = 2
+chemin_image = "images/test2.jpg"
+nb_etats = 12
+p_bruit = 0.2
+nb_iter = 300000
+beta = 1.2
+sigma2 = 1
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
