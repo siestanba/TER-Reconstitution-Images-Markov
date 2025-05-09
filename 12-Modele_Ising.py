@@ -9,10 +9,17 @@ def charger_image_grayscale(path, nb_etats):
     img_bin = np.floor(img_np / (256 / nb_etats)).astype(int)  # 0 ou 1
     return 2 * img_bin - 1  # transforme en -1 ou +1
 
-def ajouter_bruit(champ, p, nb_etats):
+def ajouter_bruit_gaussien_discret(champ, sigma):
+    bruit = np.random.normal(0, sigma, size=champ.shape)
+    champ_bruite = np.sign(champ + bruit)  # Garde -1 ou +1
+    champ_bruite[champ_bruite == 0] = 1    # Remplace les 0 par +1 (par convention)
+    return champ_bruite
+
+def ajouter_bruit(champ, p):
     bruit = np.random.choice([-1, 1], size=champ.shape)
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
+
 
 def energie_locale_ising(i, j, H, L, champ, etat, beta, B):
     voisins = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -49,9 +56,15 @@ def metropolis_ising(champ, nb_iter, beta, B):
             champ[i, j] = etat_nouveau
     return champ
 
-def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats, taux, taux_base, taux_gibbs, taux_metro):
+def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
+    
+    # Calcul du taux de restauration pour les deux estimateurs
+    taux = taux_restauration(img_init, img_init)
+    taux_base = taux_restauration(img_init, img_bruitee)
+    taux_gibbs = taux_restauration(img_init, gibbs)
+    taux_metro = taux_restauration(img_init, metro)
 
     imgs = [img_init, gibbs, img_bruitee, metro]
     titres = [
@@ -79,27 +92,23 @@ def taux_restauration(img_originale, img_restauree):
 # === Paramètres ===
 chemin_image = "images/souris.png"
 #chemin_image = "images/chat.jpg"
-nb_etats = 2
+sigma_bruit = 1
 p_bruit = 0.3
+nb_etats = 2
 nb_iter = 100000
-beta = 1
+beta = 2
 B = 0.0  # champ externe nul
 
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
+#img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit)
+img_bruitee = ajouter_bruit(img, p_bruit)
 champ_gibbs = img_bruitee.copy()
 champ_metro = img_bruitee.copy()
 
 champ_gibbs = gibbs_ising(champ_gibbs, nb_iter, beta, B)
 champ_metro = metropolis_ising(champ_metro, nb_iter, beta, B)
 
-# Calcul du taux de restauration pour les deux estimateurs
-taux = taux_restauration(img, img)
-taux_base = taux_restauration(img, img_bruitee)
-taux_gibbs = taux_restauration(img, champ_gibbs)
-taux_metro = taux_restauration(img, champ_metro)
-
 # Affichage des résultats
-afficher_resultats(img, img_bruitee, champ_gibbs, champ_metro, nb_etats, taux, taux_base, taux_gibbs, taux_metro)
+afficher_resultats(img, img_bruitee, champ_gibbs, champ_metro, nb_etats)

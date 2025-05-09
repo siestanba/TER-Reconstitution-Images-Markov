@@ -22,6 +22,25 @@ def ajouter_bruit(champ, p, nb_etats):
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
 
+def ajouter_bruit_gaussien_discret(champ, sigma, nb_etats):
+    bruit = np.random.normal(0, sigma, size=champ.shape)
+    champ_bruite = np.round(champ + bruit).astype(int)
+    champ_bruite = np.clip(champ_bruite, 0, nb_etats - 1)
+    return champ_bruite
+
+def ajouter_bruit_gaussien_remplacement(champ, sigma, nb_etats):
+    centre = (nb_etats - 1) / 2
+    bruit_gaussien = np.random.normal(centre, sigma, size=champ.shape)
+    bruit_gaussien = np.round(bruit_gaussien).astype(int)
+    bruit_gaussien = np.clip(bruit_gaussien, 0, nb_etats - 1)
+
+    # Probabilité de remplacement croissante avec sigma
+    proba_remplacement = 1 - np.exp(-sigma / 10.0)  # plus sigma est grand, plus la proba approche 1
+    masque = np.random.rand(*champ.shape) < proba_remplacement
+
+    return np.where(masque, bruit_gaussien, champ)
+
+
 # === Calcul de l'énergie locale (U_s) pour un pixel donné ===
 def energie_locale(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
     """
@@ -129,15 +148,18 @@ def taux_restauration(img_originale, img_restauree):
 
 # === Paramètres ===
 chemin_image = "images/crane-1.jpg"
-nb_etats = 16
+sigma_bruit = 0.5
 p_bruit = 0.3
+nb_etats = 16
 nb_iter = 200000
 beta = 2
 sigma2 = 4
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
+#img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
+img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit, nb_etats)
+#img_bruitee = ajouter_bruit_gaussien_remplacement(img, sigma_bruit, nb_etats)
 champ_init = img_bruitee.copy()
 
 # Modèle de Potts binaire
