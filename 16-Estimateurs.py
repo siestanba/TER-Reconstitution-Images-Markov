@@ -22,24 +22,16 @@ def ajouter_bruit(champ, p, nb_etats):
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
 
+def ajouter_bruit_uniforme(champ, p, nb_etats):
+    bruit = np.random.choice(range(nb_etats), size=champ.shape)
+    masque = np.random.rand(*champ.shape) < p
+    return np.where(masque, bruit, champ)
+
 def ajouter_bruit_gaussien_discret(champ, sigma, nb_etats):
     bruit = np.random.normal(0, sigma, size=champ.shape)
     champ_bruite = np.round(champ + bruit).astype(int)
     champ_bruite = np.clip(champ_bruite, 0, nb_etats - 1)
     return champ_bruite
-
-def ajouter_bruit_gaussien_remplacement(champ, sigma, nb_etats):
-    centre = (nb_etats - 1) / 2
-    bruit_gaussien = np.random.normal(centre, sigma, size=champ.shape)
-    bruit_gaussien = np.round(bruit_gaussien).astype(int)
-    bruit_gaussien = np.clip(bruit_gaussien, 0, nb_etats - 1)
-
-    # Probabilité de remplacement croissante avec sigma
-    proba_remplacement = 1 - np.exp(-sigma / 10.0)  # plus sigma est grand, plus la proba approche 1
-    masque = np.random.rand(*champ.shape) < proba_remplacement
-
-    return np.where(masque, bruit_gaussien, champ)
-
 
 # === Calcul de l'énergie locale (U_s) pour un pixel donné ===
 def energie_locale(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
@@ -115,9 +107,16 @@ def estimateur_tpm(samples):
     return np.round(np.mean(np.array(samples), axis=0)).astype(int)
 
 # === Visualisation ===
-def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm, beta, sigma2, p_bruit, nb_iter):
+def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, beta, sigma2, p_bruit, nb_iter):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
+
+    # Calcul du taux de restauration pour les deux estimateurs
+    taux = taux_restauration(img_init, img_init)
+    taux_base = taux_restauration(img_init, img_bruitee)
+    taux_map = taux_restauration(img_init, map_est)
+    taux_mpm = taux_restauration(img_init, mpm_est)
+    taux_tpm = taux_restauration(img_init, tpm_est)
 
     titres = [
         f"Image originale\n(ε={taux:.2f})",
@@ -150,16 +149,15 @@ def taux_restauration(img_originale, img_restauree):
 chemin_image = "images/test2.jpg"
 sigma_bruit = 0.5
 p_bruit = 0.3
-nb_etats = 16
-nb_iter = 200000
+nb_etats = 32
+nb_iter = 60000
 beta = 2
-sigma2 = 4
+sigma2 = 0.8
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-#img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
+#img_bruitee = ajouter_bruit_uniforme(img, p_bruit, nb_etats)
 img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit, nb_etats)
-#img_bruitee = ajouter_bruit_gaussien_remplacement(img, sigma_bruit, nb_etats)
 champ_init = img_bruitee.copy()
 
 # Modèle de Potts binaire
@@ -183,13 +181,5 @@ mcmc_samples = gibbs_mcmc(champ_init.copy(), nb_iter, modele)
 mpm_est = estimateur_mpm(mcmc_samples, nb_etats)
 tpm_est = estimateur_tpm(mcmc_samples)
 
-# Calcul du taux de restauration pour les deux estimateurs
-taux = taux_restauration(img, img)
-taux_base = taux_restauration(img, img_bruitee)
-taux_map = taux_restauration(img, map_est)
-taux_mpm = taux_restauration(img, mpm_est)
-taux_tpm = taux_restauration(img, tpm_est)
-
-
 # Affichage final
-afficher_resultats(img, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, taux, taux_base, taux_map, taux_mpm, taux_tpm, beta, sigma2, p_bruit, nb_iter)
+afficher_resultats(img, img_bruitee, map_est, mpm_est, tpm_est, nb_etats, beta, sigma2, p_bruit, nb_iter)

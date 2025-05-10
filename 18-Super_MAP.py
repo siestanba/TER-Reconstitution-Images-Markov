@@ -10,7 +10,7 @@ def charger_image_grayscale(path, nb_etats):
     return np.floor(img_np / (256 / nb_etats)).astype(int)
 
 # === Ajout de bruit : simulateur du modèle d'observation P(Y|X) ===
-def ajouter_bruit(champ, p, nb_etats):
+def ajouter_bruit_uniforme(champ, p, nb_etats):
     bruit = np.random.choice(range(nb_etats), size=champ.shape)
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
@@ -20,19 +20,6 @@ def ajouter_bruit_gaussien_discret(champ, sigma, nb_etats):
     champ_bruite = np.round(champ + bruit).astype(int)
     champ_bruite = np.clip(champ_bruite, 0, nb_etats - 1)
     return champ_bruite
-
-def ajouter_bruit_gaussien_remplacement(champ, sigma, nb_etats):
-    centre = (nb_etats - 1) / 2
-    bruit_gaussien = np.random.normal(centre, sigma, size=champ.shape)
-    bruit_gaussien = np.round(bruit_gaussien).astype(int)
-    bruit_gaussien = np.clip(bruit_gaussien, 0, nb_etats - 1)
-
-    # Probabilité de remplacement croissante avec sigma
-    proba_remplacement = 1 - np.exp(-sigma / 10.0)  # plus sigma est grand, plus la proba approche 1
-    masque = np.random.rand(*champ.shape) < proba_remplacement
-
-    return np.where(masque, bruit_gaussien, champ)
-
 
 # === Calcul de l'énergie locale pour MAP (avec attache aux données) ===
 def energie_locale_map(i, j, H, L, champ, etat, poids_aretes, observation, sigma2):
@@ -148,9 +135,8 @@ t_init = 1
 
 # === Chargement et préparation des données ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-#img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
+#img_bruitee = ajouter_bruit_uniforme(img, p_bruit, nb_etats)
 img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit, nb_etats)
-#img_bruitee = ajouter_bruit_gaussien_remplacement(img, sigma_bruit, nb_etats)
 champ_init = img_bruitee.copy()
 
 # === Définition du modèle Potts ===

@@ -10,7 +10,7 @@ def charger_image_grayscale(path, nb_etats):
     return np.floor(img_np / (256 / nb_etats)).astype(int)
 
 # === Ajout de bruit : simulateur du modèle d'observation P(Y|X) ===
-def ajouter_bruit(champ, p, nb_etats):
+def ajouter_bruit_uniforme(champ, p, nb_etats):
     bruit = np.random.choice(range(nb_etats), size=champ.shape)
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
@@ -20,19 +20,6 @@ def ajouter_bruit_gaussien_discret(champ, sigma, nb_etats):
     champ_bruite = np.round(champ + bruit).astype(int)
     champ_bruite = np.clip(champ_bruite, 0, nb_etats - 1)
     return champ_bruite
-
-def ajouter_bruit_gaussien_remplacement(champ, sigma, nb_etats):
-    centre = (nb_etats - 1) / 2
-    bruit_gaussien = np.random.normal(centre, sigma, size=champ.shape)
-    bruit_gaussien = np.round(bruit_gaussien).astype(int)
-    bruit_gaussien = np.clip(bruit_gaussien, 0, nb_etats - 1)
-
-    # Probabilité de remplacement croissante avec sigma
-    proba_remplacement = 1 - np.exp(-sigma / 10.0)  # plus sigma est grand, plus la proba approche 1
-    masque = np.random.rand(*champ.shape) < proba_remplacement
-
-    return np.where(masque, bruit_gaussien, champ)
-
 
 # === Calcul de l'énergie locale pour MAP (avec attache aux données) ===
 def energie_locale_map(i, j, H, L, champ, etat, poids_aretes, observation, sigma2):
@@ -92,9 +79,15 @@ def estimateur_map_recuit(champ, observation, nb_iter, modele, sigma2, t_init=1.
     return champ, energies
 
 # === Visualisation comparée MAP vs MAP recuit simulé ===
-def afficher_map_vs_recuit(img_init, img_bruitee, map_est, map_recuit_est, nb_etats, taux, taux_base, taux_map, taux_mapr):
+def afficher_map_vs_recuit(img_init, img_bruitee, map_est, map_recuit_est, nb_etats):
     def to_image(img):
         return (img * (255 / (nb_etats - 1))).astype(np.uint8)
+    
+    taux = taux_restauration(img_init, img_init)
+    taux_base = taux_restauration(img_init, img_bruitee)
+    taux_map = taux_restauration(img_init, map_est)
+    taux_mapr = taux_restauration(img_init, map_recuit)
+
 
     images = [img_init, img_bruitee, map_est, map_recuit_est]
     #titres = ["Image originale", "Image bruitée", "MAP (descente locale)", "MAP (recuit simulé)"]
@@ -104,7 +97,7 @@ def afficher_map_vs_recuit(img_init, img_bruitee, map_est, map_recuit_est, nb_et
         f"MAP (descente locale) \n(ε={taux_map:.2f})", f"MAP (recuit simulé) \n(ε={taux_mapr:.2f})"   
     ]
 
-    fig, axs = plt.subplots(1, 4, figsize=(18, 5))
+    fig, axs = plt.subplots(1, 4, figsize=(20, 5))
     for ax, titre, img in zip(axs, titres, images):
         ax.imshow(to_image(img), cmap="gray")
         ax.set_title(titre, fontsize=25)
@@ -139,14 +132,13 @@ p_bruit = 0.3
 nb_etats = 3
 nb_iter = 100000
 beta = 0.3
-sigma2 = 2
+sigma2 = 6
 t_init = 1
 
 # === Chargement et préparation des données ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-#img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
+#img_bruitee = ajouter_bruit_uniforme(img, p_bruit, nb_etats)
 img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit, nb_etats)
-#img_bruitee = ajouter_bruit_gaussien_remplacement(img, sigma_bruit, nb_etats)
 champ_init = img_bruitee.copy()
 
 # === Définition du modèle Potts ===
@@ -165,12 +157,6 @@ modele = {
 map_est, energie_map = estimateur_map(champ_init.copy(), img_bruitee, nb_iter, modele, sigma2)
 map_recuit, energie_recuit = estimateur_map_recuit(champ_init.copy(), img_bruitee, nb_iter, modele, sigma2, t_init)
 
-taux = taux_restauration(img, img)
-taux_base = taux_restauration(img, img_bruitee)
-taux_map = taux_restauration(img, map_est)
-taux_mapr = taux_restauration(img, map_recuit)
-
-
 # === Affichage des résultats ===
-afficher_map_vs_recuit(img, img_bruitee, map_est, map_recuit, nb_etats, taux, taux_base, taux_map, taux_mapr)
+afficher_map_vs_recuit(img, img_bruitee, map_est, map_recuit, nb_etats)
 tracer_energie(energie_map, energie_recuit)

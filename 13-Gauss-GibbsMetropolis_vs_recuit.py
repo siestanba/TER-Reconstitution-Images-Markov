@@ -5,11 +5,11 @@ from tqdm import tqdm
 
 def charger_image_grayscale(path, nb_etats):
     #img = Image.open(path)
-    img = Image.open(path).convert("L").resize((200, 200))
+    img = Image.open(path).convert("L").resize((300, 300))
     img_np = np.array(img)
     return np.floor(img_np / (256 / nb_etats)).astype(int)
 
-def ajouter_bruit(champ, p, nb_etats):
+def ajouter_bruit_uniforme(champ, p, nb_etats):
     bruit = np.random.choice(range(nb_etats), size=champ.shape)
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
@@ -20,19 +20,6 @@ def ajouter_bruit_gaussien_discret(champ, sigma, nb_etats):
     champ_bruite = np.clip(champ_bruite, 0, nb_etats - 1)
     return champ_bruite
 
-def ajouter_bruit_gaussien_remplacement(champ, sigma, nb_etats):
-    centre = (nb_etats - 1) / 2
-    bruit_gaussien = np.random.normal(centre, sigma, size=champ.shape)
-    bruit_gaussien = np.round(bruit_gaussien).astype(int)
-    bruit_gaussien = np.clip(bruit_gaussien, 0, nb_etats - 1)
-
-    # Probabilité de remplacement croissante avec sigma
-    proba_remplacement = 1 - np.exp(-sigma / 10.0)  # plus sigma est grand, plus la proba approche 1
-    masque = np.random.rand(*champ.shape) < proba_remplacement
-
-    return np.where(masque, bruit_gaussien, champ)
-
-
 def cdf_locale_4(i, j, H, L, champ, etat):
     voisins = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     attache=0
@@ -42,11 +29,11 @@ def cdf_locale_4(i, j, H, L, champ, etat):
         if 0 <= ni < H and 0 <= nj < L:
             energie_locale+=(etat-champ[ni,nj])**2
     attache=np.sum((champ - img_bruitee)**2)
-    return beta*energie_locale +  alpha* attache
+    return beta*energie_locale + alpha* attache
 
 def gibbs_classique(champ, nb_iter, modele):
     H, L = champ.shape
-    for k in tqdm(range(10000), desc="Gibbs classique (Potts)"):
+    for k in tqdm(range(nb_iter), desc="Gibbs classique (Potts)"):
         i = np.random.randint(0, H)
         j = np.random.randint(0, L)
         energies = np.array([
@@ -65,7 +52,7 @@ def gibbs_classique(champ, nb_iter, modele):
 
 def gibbs_recuit(champ, nb_iter, modele, t):
     H, L = champ.shape
-    for k in tqdm(range(10000), desc="Gibbs recuit simulé (Potts)"):
+    for k in tqdm(range(nb_iter), desc="Gibbs recuit simulé (Potts)"):
         T = t / np.log(2 + k)
         i = np.random.randint(0, H)
         j = np.random.randint(0, L)
@@ -152,19 +139,18 @@ def taux_restauration(img_originale, img_restauree):
 
 # === Paramètres ===
 chemin_image = "images/nb.png"
-sigma_bruit = 1
+sigma_bruit = 60
 p_bruit = 0.3
 nb_etats = 255
-nb_iter = 100000
-beta = 50
-alpha= 0.1
+nb_iter = 20000
+beta = 5
+alpha= 0.005
 temp = 1
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-#img_bruitee = ajouter_bruit(img, p_bruit, nb_etats)
+#img_bruitee = ajouter_bruit_uniforme(img, p_bruit, nb_etats)
 img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit, nb_etats)
-#img_bruitee = ajouter_bruit_gaussien_remplacement(img, sigma_bruit, nb_etats)
 champ_gibbs = img_bruitee.copy()
 champ_gibbs_rec = img_bruitee.copy()
 champ_metro = img_bruitee.copy()

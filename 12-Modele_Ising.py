@@ -9,17 +9,16 @@ def charger_image_grayscale(path, nb_etats):
     img_bin = np.floor(img_np / (256 / nb_etats)).astype(int)  # 0 ou 1
     return 2 * img_bin - 1  # transforme en -1 ou +1
 
-def ajouter_bruit_gaussien_discret(champ, sigma):
-    bruit = np.random.normal(0, sigma, size=champ.shape)
-    champ_bruite = np.sign(champ + bruit)  # Garde -1 ou +1
-    champ_bruite[champ_bruite == 0] = 1    # Remplace les 0 par +1 (par convention)
-    return champ_bruite
-
-def ajouter_bruit(champ, p):
+def ajouter_bruit_uniforme(champ, p):
     bruit = np.random.choice([-1, 1], size=champ.shape)
     masque = np.random.rand(*champ.shape) < p
     return np.where(masque, bruit, champ)
 
+def ajouter_bruit_gaussien_discret(champ, sigma):
+    bruit = np.random.normal(0, sigma, size=champ.shape)
+    champ_bruite = np.sign(champ + bruit)  # Garde -1 ou +1
+    champ_bruite[champ_bruite == 0] = 1    # Remplace 0 par +1 (par convention)
+    return champ_bruite
 
 def energie_locale_ising(i, j, H, L, champ, etat, beta, B):
     voisins = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -27,8 +26,8 @@ def energie_locale_ising(i, j, H, L, champ, etat, beta, B):
     for dx, dy in voisins:
         ni, nj = i + dx, j + dy
         if 0 <= ni < H and 0 <= nj < L:
-            somme_voisins += champ[ni, nj]
-    energie = -beta * etat * somme_voisins - B * etat
+            somme_voisins += champ[ni, nj] * etat
+    energie = -beta * somme_voisins - B * etat
     return energie
 
 def gibbs_ising(champ, nb_iter, beta, B):
@@ -72,7 +71,7 @@ def afficher_resultats(img_init, img_bruitee, gibbs, metro, nb_etats):
         f"Image bruitée \n(ε={taux_base:.2f})", f"Metropolis classique \n(ε={taux_metro:.2f})"
     ]
 
-    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    fig, axs = plt.subplots(2, 2, figsize=(10, 8))
     axs = axs.flatten()
 
     for i, (ax, titre, img) in enumerate(zip(axs, titres, imgs)):
@@ -96,14 +95,14 @@ sigma_bruit = 1
 p_bruit = 0.3
 nb_etats = 2
 nb_iter = 100000
-beta = 2
+beta = 1
 B = 0.0  # champ externe nul
 
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-#img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit)
-img_bruitee = ajouter_bruit(img, p_bruit)
+img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit)
+#img_bruitee = ajouter_bruit_uniforme(img, p_bruit)
 champ_gibbs = img_bruitee.copy()
 champ_metro = img_bruitee.copy()
 
