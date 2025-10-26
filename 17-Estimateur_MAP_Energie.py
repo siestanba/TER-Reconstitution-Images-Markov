@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 # === Chargement et quantification de l'image ===
 def charger_image_grayscale(path, nb_etats):
-    img = Image.open(path).convert("L").resize((100, 100))
+    img = Image.open(path).convert("L").resize((200, 200))
     img_np = np.array(img)
     return np.floor(img_np / (256 / nb_etats)).astype(int)
 
@@ -129,16 +129,16 @@ def taux_restauration(img_originale, img_restauree):
 chemin_image = "images/test1.png"
 sigma_bruit = 0.5
 p_bruit = 0.3
-nb_etats = 3
-nb_iter = 100000
-beta = 0.3
-sigma2 = 6
+nb_etats = 16
+nb_iter = 200000
+beta = 2
+sigma2 = 10
 t_init = 1
 
 # === Chargement et préparation des données ===
 img = charger_image_grayscale(chemin_image, nb_etats)
-#img_bruitee = ajouter_bruit_uniforme(img, p_bruit, nb_etats)
-img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit, nb_etats)
+img_bruitee = ajouter_bruit_uniforme(img, p_bruit, nb_etats)
+#img_bruitee = ajouter_bruit_gaussien_discret(img, sigma_bruit, nb_etats)
 champ_init = img_bruitee.copy()
 
 # === Définition du modèle Potts ===

@@ -122,12 +122,12 @@ def taux_restauration(img_originale, img_restauree):
     return taux
 
 # === Paramètres ===
-chemin_image = "images/test1.png"
-sigma_bruit = 0.5
+chemin_image = "images/pi2.png"
+sigma_bruit = 0.6
 p_bruit = 0.3
 nb_etats = 3
 nb_iter = 200000
-beta = 0.5
+beta = 0.6
 temp = 1
 
 # === Exécution ===

@@ -33,21 +33,8 @@ def ajouter_bruit_gaussien_discret(champ, sigma, nb_etats):
     champ_bruite = np.clip(champ_bruite, 0, nb_etats - 1)
     return champ_bruite
 
-# === Calcul de l'énergie locale (U_s) pour un pixel donné ===
-def energie_locale(i, j, H, L, champ, etat, poids_aretes, poids_sommets):
-    """
-    Calcule l'énergie locale si on assigne 'etat' au pixel (i,j), en tenant compte des voisins (cliques d'ordre 2).
-    """
-    voisins = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    energie = poids_sommets[etat]  # Potentiel de site (clique d'ordre 1)
-    for dx, dy in voisins:
-        ni, nj = i + dx, j + dy
-        if 0 <= ni < H and 0 <= nj < L:
-            energie += poids_aretes[(etat, champ[ni, nj])]
-    return energie
-
 # === Calcul de l'énergie locale pour MAP (avec attache aux données) ===
-def energie_locale_map(i, j, H, L, champ, etat, poids_aretes, observation, sigma2):
+def energie_locale(i, j, H, L, champ, etat, poids_aretes, observation, sigma2):
     """
     même chose avec attache aux données
     """
@@ -67,7 +54,7 @@ def estimateur_map(champ, observation, nb_iter, modele, sigma2, t_init=1.0):
         T = t_init / np.log(2 + k)
         i, j = np.random.randint(H), np.random.randint(L)
         energies = np.array([
-            energie_locale_map(i, j, H, L, champ, s, modele['poids_aretes'], observation, sigma2)
+            energie_locale(i, j, H, L, champ, s, modele['poids_aretes'], observation, sigma2)
             for s in range(modele['nb_etats'])
         ])
         proba = np.exp(-energies / T)
@@ -76,13 +63,13 @@ def estimateur_map(champ, observation, nb_iter, modele, sigma2, t_init=1.0):
     return champ
 
 # === Génération d'échantillons Gibbs pour MPM / TPM ===
-def gibbs_mcmc(champ, nb_iter, modele, collect_start=50000, collect_every=1000):
+def gibbs_mcmc(champ, observation, sigma2, nb_iter, modele, collect_start=50000, collect_every=1000):
     H, L = champ.shape
     samples = []
-    for k in tqdm(range(nb_iter), desc="Gibbs MCMC"):
+    for k in tqdm(range(nb_iter), desc="Gibbs conditionné à l'observation"):
         i, j = np.random.randint(H), np.random.randint(L)
         energies = np.array([
-            energie_locale(i, j, H, L, champ, s, modele['poids_aretes'], modele['poids_sommets'])
+            energie_locale(i, j, H, L, champ, s, modele['poids_aretes'], observation, sigma2)
             for s in range(modele['nb_etats'])
         ])
         proba = np.exp(-energies)
@@ -133,7 +120,7 @@ def afficher_resultats(img_init, img_bruitee, map_est, mpm_est, tpm_est, nb_etat
         ax.set_title(titre, fontsize=22)
         ax.axis("off")
 
-    param_text = f"Paramètres : nb_etats={nb_etats}, p_bruit={p_bruit}, nb_iter={nb_iter}, β={beta}, σ²={sigma2}"
+    param_text = f"Paramètres : nb_etats={nb_etats}, nb_iter={nb_iter}, β={beta}, σ²={sigma2:.2f}"
     fig.text(0.5, 0.1, param_text, ha='center', fontsize=16)
 
     plt.tight_layout(rect=[0, 0.05, 1, 1])
@@ -146,13 +133,14 @@ def taux_restauration(img_originale, img_restauree):
     return taux
 
 # === Paramètres ===
-chemin_image = "images/pi2.png"
+chemin_image = "images/pi4.png"
 sigma_bruit = 0.8
 p_bruit = 0.3
-nb_etats = 3
-nb_iter = 200000
+nb_etats = 16
+nb_iter = 1000000
 beta = 1
-sigma2 = 4
+sigma2 = sigma_bruit**2
+#sigma2 = 4
 
 # === Exécution ===
 img = charger_image_grayscale(chemin_image, nb_etats)
@@ -177,7 +165,8 @@ modele = {
 map_est = estimateur_map(champ_init.copy(), img_bruitee, nb_iter, modele, sigma2)
 
 # MCMC
-mcmc_samples = gibbs_mcmc(champ_init.copy(), nb_iter, modele)
+#mcmc_samples = gibbs_mcmc(champ_init.copy(), nb_iter, modele)
+mcmc_samples = gibbs_mcmc(champ_init.copy(), img_bruitee, sigma2, nb_iter, modele)
 mpm_est = estimateur_mpm(mcmc_samples, nb_etats)
 tpm_est = estimateur_tpm(mcmc_samples)
 

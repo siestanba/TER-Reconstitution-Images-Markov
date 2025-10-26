@@ -138,7 +138,7 @@ def taux_restauration(img_originale, img_restauree):
     return taux
 
 # === Paramètres ===
-chemin_image = "images/nb.png"
+chemin_image = "images/pi2.png"
 sigma_bruit = 60
 p_bruit = 0.3
 nb_etats = 255
